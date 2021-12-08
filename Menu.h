@@ -4,16 +4,22 @@
 #include <LiquidCrystal.h>
 #include "Joystick.h"
 #include "Characters.h"
+#include "Game.h"
+#include <EEPROM.h>
 
 // TODO: singleton
 class Menu {
 public:
   #define MAIN_MENU 0
 
-  Menu(): lcd(RS, enable, d4, d5, d6, d7), joystick() {
+  Menu(): lcd(RS, enable, d4, d5, d6, d7),
+          joystick() {
+    
     sectionIndex = 1;
     currentMenu = MAIN_MENU;
     cursorRow = 1;
+    
+    // lcd related
     pinMode(v0, OUTPUT);
     lcd.createChar(BLOCK, block);
     lcd.createChar(R_ARROW, rightArrow);
@@ -22,7 +28,12 @@ public:
     lcd.begin(displayWidth, displayHeight);
     lcd.noCursor();
     lcd.noBlink();
-    setContrast();
+
+    // get settings and init
+    loadFromStorage();
+    game = new Game(1, settings.matrixBrightness);
+    
+    setContrast(); 
     showMenuSections();
   }
 
@@ -42,11 +53,13 @@ private:
   int sectionIndex, currentMenu, cursorRow;
   const int displayWidth = 16, displayHeight = 2;
 
+  Game *game;
   Joystick joystick;
 
   struct {
-    int contrast = 120;
-    int brightness = 2; // 0 - 15
+    // values will be between 0 and 12 (aka count of slider blocks)
+    int contrast = 6; // 0 - 12
+    int matrixBrightness = 2; // 0 - 12
   } settings; // salvez si incarc chestii in si din eeprom
   
   const int RS = 13, enable = 6, d4 = 5, d5 = 4,
@@ -61,7 +74,7 @@ private:
 
   #define ENTER_NAME 0
   #define CONTRAST 2
-  #define BRIGHTNESS 3
+  #define MAT_BRIGHTNESS 3
 
   #define POC 1
   
@@ -70,7 +83,7 @@ private:
   const int menuLengths[4] = {5, 5, 5, 5};
   const String menuSections[4][5] = { {
       " <" + title + ">",
-      " Let's OSU!", // -> song list + procedural care o sa fie POC
+      " Let's OSU!",
       " Highscore", // todo -> dupa POC ca sa am ce sa salvez
       " Settings",
       " About"
@@ -78,7 +91,7 @@ private:
       " <Settings>",
       " Enter name", // todo
       " Contrast",
-      " Brightnes", // TODO
+      " Mat Brightnes",
       " Back"
     }, {
       " <About>",
@@ -88,16 +101,18 @@ private:
       " Back"
     }, {
       " <Pick a Song>",
-      " POC PROCEDURAL",
-      " Song 1",
+      " POC", // TODO
+      " Song 1", // Ehey, macar sa ajung aici
       " Song 2",
       " Back",
     }
   };
 
+  int highscores[3];
+
   bool update() {
     bool c = updateCursor();
-    bool m = updateMenu();
+    bool m = switchMenu();
     if (m) {
       sectionIndex = 1;
       cursorRow = 1;
@@ -127,14 +142,9 @@ private:
     return true;
   }
 
-  const int blockValue = 21;
-
-  void contrastMenu() {
-    
-    const int maxBlockCount = 12;
-    const int units = 255 / maxBlockCount;
-    int blockCount = settings.contrast / 21;
-
+  void sliderMenu(int &blockCount, void (Menu::*updateSettings)()) {
+    static const int maxBlockCount = 12;
+  
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("- ");
@@ -147,21 +157,20 @@ private:
     lcd.print(" +");
     lcd.setCursor(0, 1);
     lcd.print(" Press to save");
-    
+  
     while (true) {
       int dir = joystick.detectMoveX();
       if (dir == 1 && blockCount < maxBlockCount) {
-        lcd.setCursor(blockCount + 2, 0);
+        lcd.setCursor(2 + blockCount, 0);
         lcd.write(byte(BLOCK));
         blockCount += 1;
       } else if (dir == -1 && blockCount > 0) {
-        lcd.setCursor(blockCount + 1, 0);
+        lcd.setCursor(1 + blockCount, 0);
         lcd.print(" ");
         blockCount -= 1;
       }
-
-      settings.contrast = blockCount * units;
-      setContrast();
+  
+      (this->*updateSettings)();
       
       int buttonState = joystick.getButton();
       if (buttonState == 1) {
@@ -169,11 +178,10 @@ private:
       }
     }
 
-    // TODO eeprom
-    // TODO split this in mai multe in caz ca imi trebuie pe bucati
+    saveSettingsInStorage();
   }
-
-  bool updateMenu() {
+  
+  bool switchMenu() {
     int buttonState = joystick.getButton();
     if (buttonState != 1) {
       return false;
@@ -204,9 +212,10 @@ private:
         break;
       case SETTINGS:
         if (sectionIndex == CONTRAST) {
-          contrastMenu();
-        }
-        if (sectionIndex == menuLengths[SETTINGS] - 1) {
+          sliderMenu(settings.contrast, &setContrast);
+        } else if (sectionIndex == MAT_BRIGHTNESS) {
+          sliderMenu(settings.matrixBrightness, &setMatrixBrightness);
+        } else if (sectionIndex == menuLengths[SETTINGS] - 1) {
           currentMenu = MAIN_MENU;
         }
         break;
@@ -279,7 +288,22 @@ private:
   }
 
   void setContrast() {
-    analogWrite(v0, settings.contrast);
+    int value = map(settings.contrast, 0, 12, 0, 255);
+    analogWrite(v0, value);
+  }
+
+  void setMatrixBrightness() {
+    int value = map(settings.matrixBrightness, 0, 12, 0, 15);
+    game->updateBrightness(value);
+  }
+
+  void loadFromStorage() {
+    EEPROM.get(0, settings);
+    EEPROM.get(sizeof(settings), highscores);
+  }
+
+  void saveSettingsInStorage() {
+    EEPROM.put(0, settings);
   }
 };
 
