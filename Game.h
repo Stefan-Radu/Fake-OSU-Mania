@@ -36,23 +36,30 @@ public:
     }
   }
 
-  void updateStats(LiquidCrystal &lcd, int &s, int &l) {
+  void updateStats(LiquidCrystal &lcd, int &s, float &l) {
     lcd.clear();
     lcd.setCursor(2, 0);
     lcd.print("Score: ");
     lcd.print(s);
     lcd.setCursor(2, 1);
     lcd.print("Lives: ");
-    lcd.print(l);
+    lcd.print(int(l));
   }
 
-  void playPOC(LiquidCrystal &lcd) {
+  int playPOC(LiquidCrystal &lcd) {
     lastStateChange = 0;
+    for (int i = 0; i < MAP_HEIGHT; ++i) {
+      matrixMap[i] = B00000000;
+    }
+    lc.clearDisplay(0);
     
-    int score = 0, lives = 100, gameDelay = 150;
+    int score = 0, gameDelay = 250;
+    static const int maxLives = 50;
+    float lives = maxLives, coeff = 1, 
+          adder = 0.003, invCoeff = 1;
     bool joyStates[4] = {0, 0, 0, 0};
     updateStats(lcd, score, lives);
-    float coefficient = 1, adder = 0.001;
+    int updateOrder[4] = {0, 1, 2, 3};
 
     while (true) {
       unsigned long timeNow = millis();
@@ -67,12 +74,12 @@ public:
         for (int j = 0; j < MATRIX_WIDTH; j += 2) {
           bool onMatrix = (matrixMap[lastRow] & (1 << j)) != 0;
           if (onMatrix != joyStates[3 - (j / 2)]) {
-            lives -= 1;
+            lives = max(0, lives - 1.0 * coeff);
             change = true;
           }
           else if (onMatrix == true) {
             score += 1;
-            lives = min(lives + 1, 100);
+            lives = min(maxLives, lives + 2.0 * invCoeff);
             change = true;
           }
         }
@@ -89,21 +96,34 @@ public:
         if (currentRow == MAP_HEIGHT) {
           currentRow = 0;
         }
-        generateNewLine(coefficient);
+        generateNewLine(coeff, updateOrder);
         displayMatrix();
         
         lastStateChange = timeNow;
         for (int i = 0; i < 4; ++i) {
           joyStates[i] = 0;   
         }
-        coefficient += adder;
+        coeff += adder;
+        invCoeff = max(0.0, invCoeff - adder);
       }
 
       joystick->checkAllStates(joyStates);
     }
-  }
 
-  // ending let everything fall at 3 times the speed;
+    lcd.clear();
+    lcd.setCursor(2, 0);
+    lcd.print("Game Over!");
+    lcd.setCursor(2, 1);
+    lcd.print("You scored ");
+    lcd.print(score);
+    endGameAnimation(gameDelay / 4, updateOrder);
+
+    while (joystick->getButton() != 1) {
+      delay(50);
+    }
+
+    return score;
+  }
   
 private:
 
@@ -141,6 +161,32 @@ private:
     }
   }
 
+  void endGameAnimation(int d, int *order) {
+    for (int i = 0; i < MAP_HEIGHT * 20; ++i) {
+      currentRow += 1;
+      if (currentRow == MAP_HEIGHT) {
+        currentRow = 0;
+      }
+      generateNewLine(8, order);
+      displayMatrix();
+      delay(d);
+    }
+    for (int i = 0; i < MAP_HEIGHT; ++i) {
+      currentRow += 1;
+      if (currentRow == MAP_HEIGHT) {
+        currentRow = 0;
+      }
+      int updateRow = currentRow + 1;
+      if (updateRow == MAP_HEIGHT) {
+        updateRow = 0;
+      }
+      matrixMap[updateRow] = B00000000;
+      displayMatrix();
+      delay(d);
+    }
+    delay(1000);
+  }
+
   void displayMatrix() {
     int index = currentRow;
     for (int i = 0; i < MATRIX_HEIGHT; ++i) {
@@ -152,23 +198,35 @@ private:
     }
   }
 
-  void generateNewLine(float &coefficient) {
-    int index = currentRow + 1;
-    if (index == MAP_HEIGHT) {
-      index = 0;
+  void swap(int &x, int &y) {
+    int k = x;
+    x = y;
+    y = k;
+  }
+  
+  void generateNewLine(float coeff, int* order) {
+    int updateRow = currentRow + 1;
+    if (updateRow == MAP_HEIGHT) {
+      updateRow = 0;
     }
 
     static const int threshold = 80;
+    // random shuffle
+    for (int i = 0; i < 4; ++ i) {
+      swap(order[i], order[rand() % 4]);
+    }
     
-    matrixMap[index] = B00000000;
+    matrixMap[updateRow] = B00000000;
     for (int i = 0; i < MATRIX_WIDTH; i += 2) {
-      if (matrixMap[currentRow] & (3 << i) != 0) {
-        if (rand() % 100 < min(threshold, 30 * coefficient)) {
-          matrixMap[index] ^= (3 << i);
+      int index = order[i] * 2;
+      if (matrixMap[currentRow] & (3 << index) != 0) {
+        if (rand() % 100 < min(threshold, 50 * coeff)) {
+          matrixMap[updateRow] ^= (3 << index);
+          break;
         }
-      }
-      else if (rand() % 100 < min(threshold, 5 * coefficient)) {
-        matrixMap[index] ^= (3 << i);
+      } else if (rand() % 100 < min(threshold, 5 * coeff)) {
+        matrixMap[updateRow] ^= (3 << index);
+        break;
       }
     };
   }
