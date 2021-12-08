@@ -1,22 +1,27 @@
 #ifndef JOYSTICK_H
 #define JOYSTICK_H
-// TODO: singleton
 
 class Joystick {
 public:
-  Joystick() {
-    pinMode(xPin, INPUT);
-    pinMode(yPin, INPUT);
-    pinMode(swPin, INPUT_PULLUP); 
-    joyMoved = false;
-    buttonState = false;
-    lastDebounceTime = millis();
-  }
+  Joystick(Joystick &other) = delete;
+  Joystick operator=(const Joystick &) = delete;
 
+  static Joystick* getInstance();
+
+  void checkAllStates(bool* v) {
+    // left, down, up, right
+    int x = getStateX();
+    v[0] = v[0] || (x == -1);
+    v[3] = v[3] || (x == 1);
+    int y = getStateY();
+    v[1] = v[1] || (y == -1);
+    v[2] = v[2] || (y == 1);
+  }
+  
   int getStateX() { return getState(xPin); }
   int getStateY() { return getState(yPin); }
-  int detectMoveX() { return -detectMove(xPin); }
-  int detectMoveY() { return detectMove(yPin); }
+  int detectMoveX() { return detectMove(xPin); }
+  int detectMoveY() { return -detectMove(yPin); }
 
   bool getButton() {
     int reading = digitalRead(swPin);
@@ -35,8 +40,24 @@ public:
     }
     return 0;
   }
+
+  ~Joystick() {
+    delete instance;
+  }
   
 private:
+
+  Joystick() {
+    pinMode(xPin, INPUT);
+    pinMode(yPin, INPUT);
+    pinMode(swPin, INPUT_PULLUP); 
+    joyMoved = false;
+    buttonState = false;
+    lastDebounceTime = millis();
+  }
+
+  static Joystick *instance;
+  
   const int xPin = A1, yPin = A0, swPin = 2;
   const int minThreshold = 200, maxThreshold = 800;
   
@@ -64,12 +85,21 @@ private:
   int getState(int pin) {
     int val = analogRead(pin);
     if (val >= maxThreshold) {
-      return -1; 
+      return 1; 
     } else if (val <= minThreshold) {
-      return 1;
+      return -1;
     }
     return 0;
   }
 };
+
+Joystick* Joystick::instance = nullptr;
+
+Joystick* Joystick::getInstance() {
+  if (instance == nullptr) {
+    instance = new Joystick();
+  }
+  return instance;
+}
 
 #endif

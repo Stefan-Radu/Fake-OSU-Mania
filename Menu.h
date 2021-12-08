@@ -11,10 +11,12 @@
 class Menu {
 public:
   #define MAIN_MENU 0
+  #define DISPLAY_WIDTH 16
+  #define DISPLAY_HEIGHT 2
 
-  Menu(): lcd(RS, enable, d4, d5, d6, d7),
-          joystick() {
-    
+  Menu(): lcd(RS, enable, d4, d5, d6, d7) {
+
+    joystick = Joystick::getInstance();
     sectionIndex = 1;
     currentMenu = MAIN_MENU;
     cursorRow = 1;
@@ -25,7 +27,7 @@ public:
     lcd.createChar(R_ARROW, rightArrow);
     lcd.createChar(U_ARROW, upArrow);
     lcd.createChar(D_ARROW, downArrow);
-    lcd.begin(displayWidth, displayHeight);
+    lcd.begin(DISPLAY_WIDTH, DISPLAY_HEIGHT);
     lcd.noCursor();
     lcd.noBlink();
 
@@ -51,10 +53,9 @@ public:
 private:
 
   int sectionIndex, currentMenu, cursorRow;
-  const int displayWidth = 16, displayHeight = 2;
 
   Game *game;
-  Joystick joystick;
+  Joystick *joystick;
 
   struct {
     // values will be between 0 and 12 (aka count of slider blocks)
@@ -62,7 +63,7 @@ private:
     int matrixBrightness = 2; // 0 - 12
   } settings; // salvez si incarc chestii in si din eeprom
   
-  const int RS = 13, enable = 6, d4 = 5, d5 = 4,
+  const int RS = 13, enable = 6, d4 = A3, d5 = 4,
              d6 = 3, d7 = 7, v0 = 9;
 
   LiquidCrystal lcd;
@@ -122,7 +123,7 @@ private:
   }
 
   bool updateCursor() {
-    int dir = joystick.detectMoveY();
+    int dir = joystick->detectMoveY();
     if (dir == 0) return false;
 
     if (cursorRow == 0 && dir == 1 && sectionIndex < menuLengths[currentMenu] - 1) {
@@ -159,7 +160,7 @@ private:
     lcd.print(" Press to save");
   
     while (true) {
-      int dir = joystick.detectMoveX();
+      int dir = joystick->detectMoveX();
       if (dir == 1 && blockCount < maxBlockCount) {
         lcd.setCursor(2 + blockCount, 0);
         lcd.write(byte(BLOCK));
@@ -172,7 +173,7 @@ private:
   
       (this->*updateSettings)();
       
-      int buttonState = joystick.getButton();
+      int buttonState = joystick->getButton();
       if (buttonState == 1) {
         break;
       }
@@ -182,7 +183,7 @@ private:
   }
   
   bool switchMenu() {
-    int buttonState = joystick.getButton();
+    int buttonState = joystick->getButton();
     if (buttonState != 1) {
       return false;
     }
@@ -206,6 +207,9 @@ private:
         }
         break;
       case PLAY:
+        if (sectionIndex == POC) {
+          game->playPOC(lcd);
+        }
         if (sectionIndex == menuLengths[PLAY] - 1) {
           currentMenu = MAIN_MENU;
         }
@@ -238,11 +242,11 @@ private:
     lcd.print(menuSections[currentMenu][sectionIndex]);
 
     if (sectionIndex < menuLengths[currentMenu] - 1) {
-      lcd.setCursor(displayWidth - 1, 1);
+      lcd.setCursor(DISPLAY_WIDTH - 1, 1);
       lcd.write(byte(D_ARROW));
     }
     if (sectionIndex > 1 || (sectionIndex == 1 && cursorRow == 0)) {
-      lcd.setCursor(displayWidth - 1, 0);
+      lcd.setCursor(DISPLAY_WIDTH - 1, 0);
       lcd.write(byte(U_ARROW));
     }
   }
@@ -271,8 +275,8 @@ private:
      
       if (menuSections[currentMenu][sectionIndex].length() > 14) {
         lcd.scrollDisplayLeft();
-        lcd.setCursor(displayWidth - 1 + scrollCount, cursorRow);
-        lcd.print(menuSections[currentMenu][sectionIndex][displayWidth - 2 + scrollCount]);
+        lcd.setCursor(DISPLAY_WIDTH - 1 + scrollCount, cursorRow);
+        lcd.print(menuSections[currentMenu][sectionIndex][DISPLAY_WIDTH - 2 + scrollCount]);
         int offset = 1 - cursorRow * 2;
         lcd.setCursor(0, 1 - cursorRow);
         String padding = "  ";
