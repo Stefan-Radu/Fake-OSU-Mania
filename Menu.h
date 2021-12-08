@@ -9,16 +9,17 @@
 class Menu {
 public:
   #define MAIN_MENU 0
-  #define SETTINGS_MENU 1
-  #define ABOUT_MENU 2
 
   Menu(): lcd(RS, enable, d4, d5, d6, d7), joystick() {
     sectionIndex = 1;
     currentMenu = MAIN_MENU;
     cursorRow = 1;
     pinMode(v0, OUTPUT);
-    lcd.createChar(0, block);
-    lcd.begin(16, 2);
+    lcd.createChar(BLOCK, block);
+    lcd.createChar(R_ARROW, rightArrow);
+    lcd.createChar(U_ARROW, upArrow);
+    lcd.createChar(D_ARROW, downArrow);
+    lcd.begin(displayWidth, displayHeight);
     lcd.noCursor();
     lcd.noBlink();
     setContrast();
@@ -39,39 +40,58 @@ public:
 private:
 
   int sectionIndex, currentMenu, cursorRow;
+  const int displayWidth = 16, displayHeight = 2;
 
   Joystick joystick;
 
   struct {
     int contrast = 120;
-  } settings;
+    int brightness = 2; // 0 - 15
+  } settings; // salvez si incarc chestii in si din eeprom
   
   const int RS = 13, enable = 6, d4 = 5, d5 = 4,
              d6 = 3, d7 = 7, v0 = 9;
 
   LiquidCrystal lcd;
-
-  const String title = " Kinda OSU!";
   
-  const int menuLengths[3] = {5, 6, 5};
-  const String menuSections[3][6] = { {
-      title,
-      " Start", // -> song list + procedural care o sa fie POC
-      " Highscore", // todo
+  #define PLAY 3
+  #define HIGHSCORE 0
+  #define SETTINGS 1
+  #define ABOUT 2
+
+  #define ENTER_NAME 0
+  #define CONTRAST 2
+  #define BRIGHTNESS 3
+
+  #define POC 1
+  
+  const String title = "Kinda OSU!";
+  
+  const int menuLengths[4] = {5, 5, 5, 5};
+  const String menuSections[4][5] = { {
+      " <" + title + ">",
+      " Let's OSU!", // -> song list + procedural care o sa fie POC
+      " Highscore", // todo -> dupa POC ca sa am ce sa salvez
       " Settings",
       " About"
     }, {
-      " Settings",
+      " <Settings>",
       " Enter name", // todo
-      " Song", // aici ajung din start
-      " Contrast", // done
+      " Contrast",
+      " Brightnes", // TODO
       " Back"
     }, {
-      " About",
+      " <About>",
       " Title: " + title,
       " By: Stefan R.",
       " Github: https://git.io/JDfIx",
       " Back"
+    }, {
+      " <Pick a Song>",
+      " POC PROCEDURAL",
+      " Song 1",
+      " Song 2",
+      " Back",
     }
   };
 
@@ -110,14 +130,16 @@ private:
   const int blockValue = 21;
 
   void contrastMenu() {
+    
     const int maxBlockCount = 12;
     const int units = 255 / maxBlockCount;
     int blockCount = settings.contrast / 21;
-    
+
+    lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("- ");
     for (int i = 0; i < blockCount; ++i) {
-      lcd.write(byte(0));
+      lcd.write(byte(BLOCK));
     }
     for (int i = blockCount; i < maxBlockCount; ++i) {
       lcd.print(" ");
@@ -130,9 +152,9 @@ private:
       int dir = joystick.detectMoveX();
       if (dir == 1 && blockCount < maxBlockCount) {
         lcd.setCursor(blockCount + 2, 0);
-        lcd.write(byte(0));
+        lcd.write(byte(BLOCK));
         blockCount += 1;
-      } else if (dir == -1 && blockCoutn > 0) {
+      } else if (dir == -1 && blockCount > 0) {
         lcd.setCursor(blockCount + 1, 0);
         lcd.print(" ");
         blockCount -= 1;
@@ -159,22 +181,37 @@ private:
     
     switch (currentMenu) {
       case MAIN_MENU:
-        if (sectionIndex == 3) {
-          currentMenu = SETTINGS_MENU;
-        } else if (sectionIndex == 4) {
-          currentMenu = ABOUT_MENU; 
+        switch (sectionIndex) {
+          case 1:
+            currentMenu = PLAY;
+            break;
+          case 2:
+            // TODO highscore
+            currentMenu = 0;
+            break;
+          case 3:
+            currentMenu = SETTINGS;
+            break;
+          case 4:
+            currentMenu = ABOUT;
+            break;
         }
         break;
-      case SETTINGS_MENU:
-        if (sectionIndex == 3) {
-          contrastMenu();
-        }
-        if (sectionIndex == menuLengths[SETTINGS_MENU] - 1) {
+      case PLAY:
+        if (sectionIndex == menuLengths[PLAY] - 1) {
           currentMenu = MAIN_MENU;
         }
         break;
-      case ABOUT_MENU:
-        if (sectionIndex == menuLengths[ABOUT_MENU] - 1) {
+      case SETTINGS:
+        if (sectionIndex == CONTRAST) {
+          contrastMenu();
+        }
+        if (sectionIndex == menuLengths[SETTINGS] - 1) {
+          currentMenu = MAIN_MENU;
+        }
+        break;
+      case ABOUT:
+        if (sectionIndex == menuLengths[ABOUT] - 1) {
           currentMenu = MAIN_MENU;
         }
         break;
@@ -188,7 +225,17 @@ private:
     lcd.setCursor(0, 1 - cursorRow);
     lcd.print(" " + menuSections[currentMenu][sectionIndex + offset]);
     lcd.setCursor(0, cursorRow);
-    lcd.print("-" + menuSections[currentMenu][sectionIndex]);
+    lcd.write(byte(R_ARROW));
+    lcd.print(menuSections[currentMenu][sectionIndex]);
+
+    if (sectionIndex < menuLengths[currentMenu] - 1) {
+      lcd.setCursor(displayWidth - 1, 1);
+      lcd.write(byte(D_ARROW));
+    }
+    if (sectionIndex > 1 || (sectionIndex == 1 && cursorRow == 0)) {
+      lcd.setCursor(displayWidth - 1, 0);
+      lcd.write(byte(U_ARROW));
+    }
   }
 
   unsigned long lastScrollTime;
@@ -197,14 +244,26 @@ private:
   
   void scrollLongLines() {
       unsigned long timeNow = millis();
-      if (scrollCount == 0 && timeNow - lastScrollTime < scrollInterval * 10) {
+      if (scrollCount == 0 && timeNow - lastScrollTime < scrollInterval * 5) {
         return;
       } else if (scrollCount != 0 && timeNow - lastScrollTime < scrollInterval) {
+        return;
+      }
+
+      int limit = menuSections[currentMenu][sectionIndex].length() - 14;
+      if (scrollCount == limit && timeNow - lastScrollTime < scrollInterval * 5) {
+        return;
+      } else if (scrollCount == limit) {
+        scrollCount = 0;
+        lastScrollTime = millis();
+        showMenuSections();
         return;
       }
      
       if (menuSections[currentMenu][sectionIndex].length() > 14) {
         lcd.scrollDisplayLeft();
+        lcd.setCursor(displayWidth - 1 + scrollCount, cursorRow);
+        lcd.print(menuSections[currentMenu][sectionIndex][displayWidth - 2 + scrollCount]);
         int offset = 1 - cursorRow * 2;
         lcd.setCursor(0, 1 - cursorRow);
         String padding = "  ";
@@ -217,10 +276,6 @@ private:
         
       lastScrollTime = timeNow;
       scrollCount += 1;
-      if (scrollCount == menuSections[currentMenu][sectionIndex].length() + 1) {
-        scrollCount = 0;
-        showMenuSections();
-      }
   }
 
   void setContrast() {
