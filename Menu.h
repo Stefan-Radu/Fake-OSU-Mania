@@ -20,13 +20,17 @@ public:
     lcd.noCursor();
     lcd.noBlink();
     setContrast();
-    showMenuSections(currentMenu);
+    showMenuSections();
   }
 
   void display() {
     bool updated = update();
     if (updated) {
-      showMenuSections(currentMenu);
+      showMenuSections();
+      scrollCount = 0;
+      lastScrollTime = millis();
+    } else {
+      scrollLongLines();
     }
   }
 
@@ -140,13 +144,45 @@ private:
     return true;
   }
 
-  void showMenuSections(int menuIndex) {
+  void showMenuSections() {
     lcd.clear();
     int offset = 1 - cursorRow * 2; // mate
     lcd.setCursor(0, 1 - cursorRow);
     lcd.print(" " + menuSections[currentMenu][sectionIndex + offset]);
     lcd.setCursor(0, cursorRow);
     lcd.print("-" + menuSections[currentMenu][sectionIndex]);
+  }
+
+  unsigned long lastScrollTime;
+  const int scrollInterval = 500;
+  int scrollCount;
+  
+  void scrollLongLines() {
+      unsigned long timeNow = millis();
+      if (scrollCount == 0 && timeNow - lastScrollTime < scrollInterval * 10) {
+        return;
+      } else if (scrollCount != 0 && timeNow - lastScrollTime < scrollInterval) {
+        return;
+      }
+     
+      if (menuSections[currentMenu][sectionIndex].length() > 14) {
+        lcd.scrollDisplayLeft();
+        int offset = 1 - cursorRow * 2;
+        lcd.setCursor(0, 1 - cursorRow);
+        String padding = "  ";
+        for (int i = 0; i < scrollCount; ++ i) {
+          padding += " ";
+        }
+        lcd.setCursor(0, 1 - cursorRow);
+        lcd.print(padding + menuSections[currentMenu][sectionIndex + offset]);
+      }
+        
+      lastScrollTime = timeNow;
+      scrollCount += 1;
+      if (scrollCount == menuSections[currentMenu][sectionIndex].length() + 1) {
+        scrollCount = 0;
+        showMenuSections();
+      }
   }
 
   void setContrast() {
