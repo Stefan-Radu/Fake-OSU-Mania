@@ -8,22 +8,6 @@ const int loadPin = 10;
 
 LedControl lc = LedControl(dinPin, clockPin, loadPin, 1); //DIN, CLK, LOAD, No. DRIVER
 
-//void updateDisplay() {
-//  for (int i = 0; i < 8; ++i) {
-//    for (int j = 0; j < 8; ++ j) {
-//      lc.setLed(0, i, j, true);
-//      delay(20);
-//    }
-//  }
-//
-//  for (int i = 0; i < 8; ++i) {
-//    for (int j = 0; j < 8; ++ j) {
-//      lc.setLed(0, i, j, false);
-//      delay(20);
-//    }
-//  }
-//}
-
 int main () {
   init ();  // initialize timers
   Serial.begin (9600);

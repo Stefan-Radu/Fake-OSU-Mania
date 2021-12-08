@@ -3,6 +3,7 @@
 
 #include <LiquidCrystal.h>
 #include "Joystick.h"
+#include "Characters.h"
 
 // TODO: singleton
 class Menu {
@@ -16,6 +17,7 @@ public:
     currentMenu = MAIN_MENU;
     cursorRow = 1;
     pinMode(v0, OUTPUT);
+    lcd.createChar(0, block);
     lcd.begin(16, 2);
     lcd.noCursor();
     lcd.noBlink();
@@ -44,18 +46,8 @@ private:
     int contrast = 120;
   } settings;
   
-  const byte RS = 13, enable = 6, d4 = 5, d5 = 4,
+  const int RS = 13, enable = 6, d4 = 5, d5 = 4,
              d6 = 3, d7 = 7, v0 = 9;
-
-//  const byte arrow_up[8] {
-//    B00000,
-//    B10001,
-//    B00000,
-//    B00000,
-//    B10001,
-//    B01110,
-//    B00000,
-//  }
 
   LiquidCrystal lcd;
 
@@ -64,22 +56,21 @@ private:
   const int menuLengths[3] = {5, 6, 5};
   const String menuSections[3][6] = { {
       title,
-      " Start",
-      " Highscore",
+      " Start", // -> song list + procedural care o sa fie POC
+      " Highscore", // todo
       " Settings",
       " About"
     }, {
       " Settings",
-      " Enter name",
-      " Difficulty",
-      " Contrast",
-      " Brightness",
+      " Enter name", // todo
+      " Song", // aici ajung din start
+      " Contrast", // done
       " Back"
     }, {
       " About",
-      " Game Title: " + title,
-      " Creator: Stefan R.",
-      " Github link: <link>",
+      " Title: " + title,
+      " By: Stefan R.",
+      " Github: https://git.io/JDfIx",
       " Back"
     }
   };
@@ -90,6 +81,7 @@ private:
     if (m) {
       sectionIndex = 1;
       cursorRow = 1;
+      // TODO somehow remember last index
     }
     return c || m;
   }
@@ -115,13 +107,56 @@ private:
     return true;
   }
 
+  const int blockValue = 21;
+
+  void contrastMenu() {
+    const int maxBlockCount = 12;
+    const int units = 255 / maxBlockCount;
+    int blockCount = settings.contrast / 21;
+    
+    lcd.setCursor(0, 0);
+    lcd.print("- ");
+    for (int i = 0; i < blockCount; ++i) {
+      lcd.write(byte(0));
+    }
+    for (int i = blockCount; i < maxBlockCount; ++i) {
+      lcd.print(" ");
+    }
+    lcd.print(" +");
+    lcd.setCursor(0, 1);
+    lcd.print(" Press to save");
+    
+    while (true) {
+      int dir = joystick.detectMoveX();
+      if (dir == 1 && blockCount < maxBlockCount) {
+        lcd.setCursor(blockCount + 2, 0);
+        lcd.write(byte(0));
+        blockCount += 1;
+      } else if (dir == -1 && blockCoutn > 0) {
+        lcd.setCursor(blockCount + 1, 0);
+        lcd.print(" ");
+        blockCount -= 1;
+      }
+
+      settings.contrast = blockCount * units;
+      setContrast();
+      
+      int buttonState = joystick.getButton();
+      if (buttonState == 1) {
+        break;
+      }
+    }
+
+    // TODO eeprom
+    // TODO split this in mai multe in caz ca imi trebuie pe bucati
+  }
+
   bool updateMenu() {
     int buttonState = joystick.getButton();
     if (buttonState != 1) {
       return false;
     }
-    Serial.println("button press");
-
+    
     switch (currentMenu) {
       case MAIN_MENU:
         if (sectionIndex == 3) {
@@ -131,6 +166,9 @@ private:
         }
         break;
       case SETTINGS_MENU:
+        if (sectionIndex == 3) {
+          contrastMenu();
+        }
         if (sectionIndex == menuLengths[SETTINGS_MENU] - 1) {
           currentMenu = MAIN_MENU;
         }

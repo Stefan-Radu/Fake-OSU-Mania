@@ -15,7 +15,7 @@ public:
 
   int getStateX() { return getState(xPin); }
   int getStateY() { return getState(yPin); }
-  int detectMoveX() { return detectMove(xPin); }
+  int detectMoveX() { return -detectMove(xPin); }
   int detectMoveY() { return detectMove(yPin); }
 
   bool getButton() {
