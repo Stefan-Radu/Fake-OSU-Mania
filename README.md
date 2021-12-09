@@ -1,3 +1,3 @@
 # Kinda OSU!
 
-It's kinda OSU! (mania).
+It's kinda like OSU! ... Mania
