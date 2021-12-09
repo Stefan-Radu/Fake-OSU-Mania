@@ -5,7 +5,6 @@ int main () {
   init ();  // initialize timers
   Serial.begin (9600);
 
-
   // TODO game master class which will contain
   // game state and menu and orchestrate all other components
   // atm everything is in menu which doesn't make much sense overall

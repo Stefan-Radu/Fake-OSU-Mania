@@ -15,7 +15,6 @@ public:
   #define DISPLAY_HEIGHT 2
 
   Menu(): lcd(RS, enable, d4, d5, d6, d7) {
-
     joystick = Joystick::getInstance();
     sectionIndex = 1;
     currentMenu = MAIN_MENU;
@@ -33,9 +32,13 @@ public:
 
     // get settings and init
     loadFromStorage();
+    updateHighscores(0);
+    
     game = new Game(1, settings.matrixBrightness);
     
-    setContrast(); 
+    setContrast();
+    setDifficulty();
+    showStartMessage();
     showMenuSections();
   }
 
@@ -56,11 +59,13 @@ private:
 
   Game *game;
   Joystick *joystick;
+  const char* playerName = "Stef";
 
   struct {
     // values will be between 0 and 12 (aka count of slider blocks)
     int contrast = 6; // 0 - 12
     int matrixBrightness = 2; // 0 - 12
+    int difficulty = 1;
   } settings; // salvez si incarc chestii in si din eeprom
   
   const int RS = 13, enable = 6, d4 = A3, d5 = 4,
@@ -69,23 +74,24 @@ private:
   LiquidCrystal lcd;
   
   #define PLAY 3
-  #define HIGHSCORE 0
+  #define HIGHSCORE 4
   #define SETTINGS 1
   #define ABOUT 2
 
   #define ENTER_NAME 0
   #define CONTRAST 2
   #define MAT_BRIGHTNESS 3
+  #define DIFFICULTY 4
 
   #define POC 1
   
   const String title = "Kinda OSU!";
   
-  const int menuLengths[4] = {5, 5, 5, 5};
-  const String menuSections[4][5] = { {
+  const int menuLengths[5] = {5, 6, 5, 5, 5};
+  String menuSections[5][6] = { {
       " <" + title + ">",
       " Let's OSU!",
-      " Highscore", // todo -> dupa POC ca sa am ce sa salvez
+      " Highscore",
       " Settings",
       " About"
     }, {
@@ -93,6 +99,7 @@ private:
       " Enter name", // todo
       " Contrast",
       " Mat Brightnes",
+      " Difficulty",
       " Back"
     }, {
       " <About>",
@@ -102,14 +109,20 @@ private:
       " Back"
     }, {
       " <Pick a Song>",
-      " POC", // TODO
+      " POC",
       " Song 1", // Ehey, macar sa ajung aici
       " Song 2",
+      " Back",
+    }, {
+      " <Highscores>",
+      " Player 1: ...",
+      " Player 2: ...",
+      " Player 3: ...",
       " Back",
     }
   };
 
-  int highscores[3];
+  int highscores[3] = {0, 0, 0};
 
   bool update() {
     bool c = updateCursor();
@@ -141,6 +154,28 @@ private:
       sectionIndex = 1;
     }
     return true;
+  }
+
+  void showStartMessage() {
+    lcd.clear();
+    lcd.setCursor(2, 0);
+    lcd.print("Wellcome ");
+    delay(500);
+    lcd.print("and");
+    lcd.setCursor(2, 1);
+    delay(1000);
+    lcd.print("Let's play");
+    delay(1500);
+    lcd.clear();
+    delay(1000);
+    lcd.setCursor(2, 0);
+    lcd.print("OSU! Mania");
+    delay(1500);
+    lcd.setCursor(2, 1);
+    lcd.print("Kinda :P");
+    delay(2000);
+    lcd.clear();
+    delay(1000);
   }
 
   void sliderMenu(int &blockCount, void (Menu::*updateSettings)()) {
@@ -195,8 +230,7 @@ private:
             currentMenu = PLAY;
             break;
           case 2:
-            // TODO highscore
-            currentMenu = 0;
+            currentMenu = HIGHSCORE;
             break;
           case 3:
             currentMenu = SETTINGS;
@@ -208,7 +242,8 @@ private:
         break;
       case PLAY:
         if (sectionIndex == POC) {
-          game->playPOC(lcd);
+          int score = game->playPOC(lcd);
+          updateHighscores(score);
         }
         if (sectionIndex == menuLengths[PLAY] - 1) {
           currentMenu = MAIN_MENU;
@@ -219,12 +254,19 @@ private:
           sliderMenu(settings.contrast, &setContrast);
         } else if (sectionIndex == MAT_BRIGHTNESS) {
           sliderMenu(settings.matrixBrightness, &setMatrixBrightness);
+        } else if (sectionIndex == DIFFICULTY) {
+          sliderMenu(settings.difficulty, &setDifficulty);
         } else if (sectionIndex == menuLengths[SETTINGS] - 1) {
           currentMenu = MAIN_MENU;
         }
         break;
       case ABOUT:
         if (sectionIndex == menuLengths[ABOUT] - 1) {
+          currentMenu = MAIN_MENU;
+        }
+        break;
+      case HIGHSCORE:
+        if (sectionIndex == 4) {
           currentMenu = MAIN_MENU;
         }
         break;
@@ -291,6 +333,30 @@ private:
       scrollCount += 1;
   }
 
+  void updateHighscores(int hs) {
+    Serial.println(highscores[0]);
+    Serial.println(highscores[1]);
+    Serial.println(highscores[2]);
+    if (hs > highscores[0]) {
+      highscores[2] = highscores[1];
+      highscores[1] = highscores[0];
+      highscores[0] = hs;
+    } else if (hs > highscores[1]) {
+      highscores[2] = highscores[1];
+      highscores[1] = hs;
+    } else if (hs > highscores[2]) {
+      highscores[2] = hs;
+    }
+    Serial.println(highscores[0]);
+    Serial.println(highscores[1]);
+    Serial.println(highscores[2]);
+    for (int i = 0; i < 3; ++ i) {
+      char *s = menuSections[HIGHSCORE][i + 1].c_str();
+      sprintf(s, "%s: %d        ", playerName, highscores[i]);
+    }
+    saveHighscoresInStorage();
+  }
+
   void setContrast() {
     int value = map(settings.contrast, 0, 12, 0, 255);
     analogWrite(v0, value);
@@ -301,6 +367,11 @@ private:
     game->updateBrightness(value);
   }
 
+  void setDifficulty() {
+    float value = 1.0 * map(settings.difficulty, 0, 12, 10000, 30000) / 10000;
+    game->updateDifficulty(value);
+  }
+
   void loadFromStorage() {
     EEPROM.get(0, settings);
     EEPROM.get(sizeof(settings), highscores);
@@ -308,6 +379,10 @@ private:
 
   void saveSettingsInStorage() {
     EEPROM.put(0, settings);
+  }
+
+  void saveHighscoresInStorage() {
+    EEPROM.put(sizeof(settings), highscores);
   }
 };
 

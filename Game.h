@@ -17,7 +17,8 @@ public:
    * song 1 ... maybe I'll reach that point
    */
 
-  Game(int driverCount = 1, int brightness = 2, int song = 0): lc(dinPin, clockPin, loadPin, driverCount) {
+  Game(int driverCount = 1, int brightness = 2, int song = 0): 
+       lc(dinPin, clockPin, loadPin, driverCount) {
     srand(time(0));
     for (int i = 0; i < driverCount; ++i) {
       lc.shutdown(0, false); // turn off power saving, enables display
@@ -47,16 +48,18 @@ public:
   }
 
   int playPOC(LiquidCrystal &lcd) {
+    unsigned long startTime = millis();
+    
     lastStateChange = 0;
     for (int i = 0; i < MAP_HEIGHT; ++i) {
       matrixMap[i] = B00000000;
     }
     lc.clearDisplay(0);
     
-    int score = 0, gameDelay = 250;
+    int score = 0, gameDelay = 250, scoreIncrement = round(difficulty);
     static const int maxLives = 50;
-    float lives = maxLives, coeff = 1, 
-          adder = 0.003, invCoeff = 1;
+    float lives = maxLives, coeff = difficulty, 
+          adder = 0.003, invCoeff = 3 - difficulty;
     bool joyStates[4] = {0, 0, 0, 0};
     updateStats(lcd, score, lives);
     int updateOrder[4] = {0, 1, 2, 3};
@@ -78,7 +81,7 @@ public:
             change = true;
           }
           else if (onMatrix == true) {
-            score += 1;
+            score += scoreIncrement;
             lives = min(maxLives, lives + 2.0 * invCoeff);
             change = true;
           }
@@ -111,18 +114,29 @@ public:
     }
 
     lcd.clear();
-    lcd.setCursor(2, 0);
+    lcd.setCursor(3, 0);
     lcd.print("Game Over!");
-    lcd.setCursor(2, 1);
-    lcd.print("You scored ");
-    lcd.print(score);
+    lcd.setCursor(1, 1);
+    lcd.print("You did GREAT!");
+    
     endGameAnimation(gameDelay / 4, updateOrder);
+    while (joystick->getButton() != 1);
 
-    while (joystick->getButton() != 1) {
-      delay(50);
-    }
-
+    lcd.clear();
+    lcd.setCursor(2, 0);
+    lcd.print("Score: ");
+    lcd.print(score);
+    lcd.setCursor(2, 1);
+    lcd.print("Duration: ");
+    lcd.print((millis() - startTime) / 1000);
+    lcd.print("s");
+    while (joystick->getButton() != 1);
+    
     return score;
+  }
+
+  void updateDifficulty(float d) {
+    difficulty = d;
   }
   
 private:
@@ -130,6 +144,7 @@ private:
   LedControl lc;
   const int dinPin = A2, clockPin = 11, loadPin = 10;
   Joystick* joystick = nullptr;
+  float difficulty;
 
   byte matrixMap[MAP_HEIGHT] {
     B00000000,
@@ -184,7 +199,6 @@ private:
       displayMatrix();
       delay(d);
     }
-    delay(1000);
   }
 
   void displayMatrix() {
@@ -229,7 +243,7 @@ private:
         break;
       }
     };
-  }
+  }  
 };
 
 #endif
