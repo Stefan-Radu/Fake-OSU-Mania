@@ -30,9 +30,10 @@ public:
     lcd.begin(DISPLAY_WIDTH, DISPLAY_HEIGHT);
     lcd.noCursor();
     lcd.noBlink();
-
-    // get settings and init
-    loadFromStorage();
+    
+    // get settings and init    
+    loadAllFromStorage();
+    // used to update highscore menu
     updateHighscores(0);
     
     game = new Game(1, settings.matrixBrightness);
@@ -40,7 +41,7 @@ public:
     setContrast();
     setDifficulty();
     // TODO un comment this
-    showStartMessage();
+    // showStartMessage();
 
     // update logic. this should be called sepparately
     showMenuSections();
@@ -64,18 +65,18 @@ private:
   Game *game;
   Joystick *joystick;
 
-  #define PLAYER_NAME_LENGTH 13
+  #define PLAYER_NAME_LENGTH 6
   
   // settings are saved in and loaded from eeprom
   struct {
     int contrast = 6; // 0 - 12
     int matrixBrightness = 2; // 0 - 12
     int difficulty = 1; // 0 - 12
-    char playerName[PLAYER_NAME_LENGTH];
+    char playerName[PLAYER_NAME_LENGTH + 1];
   } settings;
   
   const int RS = 13, enable = 6, d4 = A3, d5 = 4,
-             d6 = 5, d7 = 7, v0 = 9;
+             d6 = 8, d7 = 7, v0 = 9;
 
   LiquidCrystal lcd;
   
@@ -84,47 +85,49 @@ private:
   #define SETTINGS 1
   #define ABOUT 2
 
-  #define ENTER_NAME 0
+  #define ENTER_NAME 1
   #define CONTRAST 2
   #define MAT_BRIGHTNESS 3
   #define DIFFICULTY 4
 
   #define POC 1
   
+  #define MAX_SECTION_LINE_LENGTH 12
+  
   const String title = "Kinda OSU!";
   
   const int menuLengths[5] = {5, 6, 5, 5, 5};
   String menuSections[5][6] = { {
-      " <" + title + ">",
-      " Let's OSU!",
-      " Highscore",
-      " Settings",
-      " About"
+      "<" + title + ">",
+      "Let's OSU!",
+      "Highscore",
+      "Settings",
+      "About"
     }, {
-      " <Settings>",
-      " Enter name", // todo
-      " Contrast",
-      " Mat Brightnes",
-      " Difficulty",
-      " Back"
+      "<Settings>",
+      "Enter name", // todo
+      "Contrast",
+      "Mat Brightnes",
+      "Difficulty",
+      "Back"
     }, {
-      " <About>",
-      " Title: " + title,
-      " By: Stefan R.",
-      " Github: https://git.io/JDfIx",
-      " Back"
+      "<About>",
+      "Title: " + title,
+      "By: Stefan R.",
+      "Github: https://git.io/JDfIx",
+      "Back"
     }, {
-      " <Pick a Song>",
-      " POC",
-      " Song 1", // Ehey, macar sa ajung aici
-      " Song 2",
-      " Back",
+      "<Pick a Song>",
+      "POC",
+      "Song 1", // Ehey, macar sa ajung aici
+      "Song 2",
+      "Back",
     }, {
-      " <Highscores>",
-      " Player 1: ...",
-      " Player 2: ...",
-      " Player 3: ...",
-      " Back",
+      "<Highscores>",
+      "Player1: ___",
+      "Player2: ___",
+      "Player3: ___",
+      "Back",
     }
   };
 
@@ -244,10 +247,12 @@ private:
     lcd.clear();
     int offset = 1 - cursorRow * 2; // mate
     lcd.setCursor(0, 1 - cursorRow);
-    lcd.print(" " + menuSections[currentMenu][sectionIndex + offset]);
+    lcd.print("  " + menuSections[currentMenu][sectionIndex + offset]);
     lcd.setCursor(0, cursorRow);
     lcd.write(byte(R_ARROW));
+    lcd.print(" ");
     lcd.print(menuSections[currentMenu][sectionIndex]);
+    Serial.println(menuSections[currentMenu][sectionIndex]);
 
     if (sectionIndex < menuLengths[currentMenu] - 1) {
       lcd.setCursor(DISPLAY_WIDTH - 1, 1);
@@ -272,8 +277,8 @@ private:
       lcd.print(" ");
     }
     lcd.print(" +");
-    lcd.setCursor(0, 1);
-    lcd.print(" Press to save!");
+    lcd.setCursor(1, 1);
+    lcd.print("Press to save!");
   
     while (true) {
       int dir = joystick->detectMoveX();
@@ -297,31 +302,41 @@ private:
   }
 
   void selectNameMenu() {
-    lcd.setCursor(2, 0);
+
+    int offset = (DISPLAY_WIDTH - PLAYER_NAME_LENGTH) / 2;
+    
+    lcd.clear();
+    lcd.setCursor(offset - 1, 0);
+    lcd.print('<');
     lcd.print(settings.playerName);
-    lcd.setCursor(2, 0);
+    lcd.setCursor(DISPLAY_WIDTH - offset, 0);
+    lcd.print('>');
+    lcd.setCursor(1, 1);
     lcd.print("Press to save!");
-    lcd.setCursor(2, 2);
+    lcd.setCursor(offset, 0);
     lcd.cursor();
     
     int letterIndex = 0;
-    char name[13];
+    char name[PLAYER_NAME_LENGTH + 1];
     strcpy(name, settings.playerName);
+
+    for (int i = strlen(name); i < PLAYER_NAME_LENGTH; ++i) {
+      name[i] = ' ';
+    }
     
     while (!joystick->getButton()) {
       int x = joystick->detectMoveX();
       int y = joystick->detectMoveY();
-
       if (x != 0) {
         letterIndex += x;
         if (letterIndex < 0) {
-          letterIndex = PLAYER_NAME_LENGTH - 2;
-        } else if (letterIndex == PLAYER_NAME_LENGTH - 1) {
+          letterIndex = PLAYER_NAME_LENGTH - 1;
+        } else if (letterIndex == PLAYER_NAME_LENGTH) {
           letterIndex = 0;
         }
-        lcd.setCursor(letterIndex + 2, 0);
+        lcd.setCursor(letterIndex + offset, 0);
       } else if (y != 0) {
-        name[letterIndex] += y;
+        name[letterIndex] -= y; // minus cuz I consider down as +
         switch (name[letterIndex]) {
           case 'a' - 1:
             name[letterIndex] = ' ';
@@ -343,10 +358,21 @@ private:
             break;
         }
         lcd.print(name[letterIndex]);
-        lcd.setCursor(letterIndex + 2, 0);
+        lcd.setCursor(letterIndex + offset, 0);
+      }
+      delay(40);
+    }
+
+    for (int i = PLAYER_NAME_LENGTH; i > 0; --i) {
+      if (name[i - 1] != ' ') {
+        name[i] = '\0';
+        break;
       }
     }
+    
+    strcpy(settings.playerName, name);
     saveSettingsInStorage();
+    lcd.noCursor();
   }
 
 /*
@@ -360,39 +386,39 @@ private:
   int scrollCount;
   
   void scrollLongLines() {
-      unsigned long timeNow = millis();
-      if (scrollCount == 0 && timeNow - lastScrollTime < scrollInterval * 5) {
-        return;
-      } else if (scrollCount != 0 && timeNow - lastScrollTime < scrollInterval) {
-        return;
-      }
+    unsigned long timeNow = millis();
+    if (scrollCount == 0 && timeNow - lastScrollTime < scrollInterval * 5) {
+      return;
+    } else if (scrollCount != 0 && timeNow - lastScrollTime < scrollInterval) {
+      return;
+    }
 
-      int limit = menuSections[currentMenu][sectionIndex].length() - 14;
-      if (scrollCount == limit && timeNow - lastScrollTime < scrollInterval * 5) {
-        return;
-      } else if (scrollCount == limit) {
-        scrollCount = 0;
-        lastScrollTime = millis();
-        showMenuSections();
-        return;
+    int limit = menuSections[currentMenu][sectionIndex].length() - 14;
+    if (scrollCount == limit && timeNow - lastScrollTime < scrollInterval * 5) {
+      return;
+    } else if (scrollCount == limit) {
+      scrollCount = 0;
+      lastScrollTime = millis();
+      showMenuSections();
+      return;
+    }
+   
+    if (menuSections[currentMenu][sectionIndex].length() > 14) {
+      lcd.scrollDisplayLeft();
+      lcd.setCursor(DISPLAY_WIDTH - 1 + scrollCount, cursorRow);
+      lcd.print(menuSections[currentMenu][sectionIndex][DISPLAY_WIDTH - 2 + scrollCount]);
+      int offset = 1 - cursorRow * 2;
+      lcd.setCursor(0, 1 - cursorRow);
+      String padding = "  ";
+      for (int i = 0; i < scrollCount; ++ i) {
+        padding += " ";
       }
-     
-      if (menuSections[currentMenu][sectionIndex].length() > 14) {
-        lcd.scrollDisplayLeft();
-        lcd.setCursor(DISPLAY_WIDTH - 1 + scrollCount, cursorRow);
-        lcd.print(menuSections[currentMenu][sectionIndex][DISPLAY_WIDTH - 2 + scrollCount]);
-        int offset = 1 - cursorRow * 2;
-        lcd.setCursor(0, 1 - cursorRow);
-        String padding = "  ";
-        for (int i = 0; i < scrollCount; ++ i) {
-          padding += " ";
-        }
-        lcd.setCursor(0, 1 - cursorRow);
-        lcd.print(padding + menuSections[currentMenu][sectionIndex + offset]);
-      }
-        
-      lastScrollTime = timeNow;
-      scrollCount += 1;
+      lcd.setCursor(0, 1 - cursorRow);
+      lcd.print(padding + menuSections[currentMenu][sectionIndex + offset]);
+    }
+      
+    lastScrollTime = timeNow;
+    scrollCount += 1;
   }
 
 /*
@@ -403,7 +429,7 @@ private:
  
   #define HIGHSCORE_COUNT 3
   int highscores[HIGHSCORE_COUNT] = {0, 0, 0};
-  char highscoreNames[HIGHSCORE_COUNT][PLAYER_NAME_LENGTH];
+  char highscoreNames[HIGHSCORE_COUNT][PLAYER_NAME_LENGTH + 1];
 
   void updateHighscores(int hs) {
     if (hs > highscores[0]) {
@@ -428,7 +454,10 @@ private:
     // update what is shown in the highscore menu
     for (int i = 0; i < 3; ++ i) {
       char *s = menuSections[HIGHSCORE][i + 1].c_str();
-      sprintf(s, "%s: %d        ", highscoreNames[i], highscores[i]);
+      // copy at most <length> caracters.
+      // basically pad with spaces at the end
+      snprintf(s, MAX_SECTION_LINE_LENGTH + 1, "%s: %d           \0",
+               highscoreNames[i], highscores[i]);
     }
     saveHighscoresInStorage();
   }
@@ -454,7 +483,7 @@ private:
     game->updateDifficulty(value);
   }
 
-  void loadFromStorage() {
+  void loadAllFromStorage() {
     unsigned int eeoffset = 0;
     EEPROM.get(eeoffset, settings);
     eeoffset += sizeof(settings);

@@ -20,8 +20,8 @@ public:
   
   int getStateX() { return getState(xPin); }
   int getStateY() { return getState(yPin); }
-  int detectMoveX() { return detectMove(xPin); }
-  int detectMoveY() { return -detectMove(yPin); }
+  int detectMoveX() { return detectMove(xPin, joyMovedX); }
+  int detectMoveY() { return -detectMove(yPin, joyMovedY); }
 
   bool getButton() {
     int reading = digitalRead(swPin);
@@ -51,7 +51,8 @@ private:
     pinMode(xPin, INPUT);
     pinMode(yPin, INPUT);
     pinMode(swPin, INPUT_PULLUP); 
-    joyMoved = false;
+    joyMovedX = false;
+    joyMovedY = false;
     buttonState = false;
     lastDebounceTime = millis();
   }
@@ -65,9 +66,9 @@ private:
   unsigned long lastDebounceTime;
   int lastButtonReading;
 
-  bool joyMoved, buttonState;
+  bool joyMovedX, joyMovedY, buttonState;
 
-  int detectMove(int pin) {
+  int detectMove(int pin, bool &joyMoved) {
     int state = getState(pin);
     
     if (state == 0) {
