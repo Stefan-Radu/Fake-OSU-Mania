@@ -23,6 +23,7 @@ public:
     // lcd related
     pinMode(v0, OUTPUT);
     lcd.createChar(BLOCK, block);
+    lcd.createChar(L_ARROW, leftArrow);
     lcd.createChar(R_ARROW, rightArrow);
     lcd.createChar(U_ARROW, upArrow);
     lcd.createChar(D_ARROW, downArrow);
@@ -38,7 +39,10 @@ public:
     
     setContrast();
     setDifficulty();
+    // TODO un comment this
     showStartMessage();
+
+    // update logic. this should be called sepparately
     showMenuSections();
   }
 
@@ -59,17 +63,19 @@ private:
 
   Game *game;
   Joystick *joystick;
-  const char* playerName = "Stef";
 
+  #define PLAYER_NAME_LENGTH 13
+  
+  // settings are saved in and loaded from eeprom
   struct {
-    // values will be between 0 and 12 (aka count of slider blocks)
     int contrast = 6; // 0 - 12
     int matrixBrightness = 2; // 0 - 12
-    int difficulty = 1;
-  } settings; // salvez si incarc chestii in si din eeprom
+    int difficulty = 1; // 0 - 12
+    char playerName[PLAYER_NAME_LENGTH];
+  } settings;
   
   const int RS = 13, enable = 6, d4 = A3, d5 = 4,
-             d6 = 3, d7 = 7, v0 = 9;
+             d6 = 5, d7 = 7, v0 = 9;
 
   LiquidCrystal lcd;
   
@@ -121,8 +127,6 @@ private:
       " Back",
     }
   };
-
-  int highscores[3] = {0, 0, 0};
 
   bool update() {
     bool c = updateCursor();
@@ -178,45 +182,6 @@ private:
     delay(1000);
   }
 
-  void sliderMenu(int &blockCount, void (Menu::*updateSettings)()) {
-    static const int maxBlockCount = 12;
-  
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("- ");
-    for (int i = 0; i < blockCount; ++i) {
-      lcd.write(byte(BLOCK));
-    }
-    for (int i = blockCount; i < maxBlockCount; ++i) {
-      lcd.print(" ");
-    }
-    lcd.print(" +");
-    lcd.setCursor(0, 1);
-    lcd.print(" Press to save");
-  
-    while (true) {
-      int dir = joystick->detectMoveX();
-      if (dir == 1 && blockCount < maxBlockCount) {
-        lcd.setCursor(2 + blockCount, 0);
-        lcd.write(byte(BLOCK));
-        blockCount += 1;
-      } else if (dir == -1 && blockCount > 0) {
-        lcd.setCursor(1 + blockCount, 0);
-        lcd.print(" ");
-        blockCount -= 1;
-      }
-  
-      (this->*updateSettings)();
-      
-      int buttonState = joystick->getButton();
-      if (buttonState == 1) {
-        break;
-      }
-    }
-
-    saveSettingsInStorage();
-  }
-  
   bool switchMenu() {
     int buttonState = joystick->getButton();
     if (buttonState != 1) {
@@ -244,13 +209,14 @@ private:
         if (sectionIndex == POC) {
           int score = game->playPOC(lcd);
           updateHighscores(score);
-        }
-        if (sectionIndex == menuLengths[PLAY] - 1) {
+        } else if (sectionIndex == menuLengths[PLAY] - 1) {
           currentMenu = MAIN_MENU;
         }
         break;
       case SETTINGS:
-        if (sectionIndex == CONTRAST) {
+        if (sectionIndex == ENTER_NAME) {
+          selectNameMenu();
+        } else if (sectionIndex == CONTRAST) {
           sliderMenu(settings.contrast, &setContrast);
         } else if (sectionIndex == MAT_BRIGHTNESS) {
           sliderMenu(settings.matrixBrightness, &setMatrixBrightness);
@@ -292,6 +258,102 @@ private:
       lcd.write(byte(U_ARROW));
     }
   }
+  
+  void sliderMenu(int &blockCount, void (Menu::*updateSettings)()) {
+    static const int maxBlockCount = 12;
+  
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("- ");
+    for (int i = 0; i < blockCount; ++i) {
+      lcd.write(byte(BLOCK));
+    }
+    for (int i = blockCount; i < maxBlockCount; ++i) {
+      lcd.print(" ");
+    }
+    lcd.print(" +");
+    lcd.setCursor(0, 1);
+    lcd.print(" Press to save!");
+  
+    while (true) {
+      int dir = joystick->detectMoveX();
+      if (dir == 1 && blockCount < maxBlockCount) {
+        lcd.setCursor(2 + blockCount, 0);
+        lcd.write(byte(BLOCK));
+        blockCount += 1;
+      } else if (dir == -1 && blockCount > 0) {
+        lcd.setCursor(1 + blockCount, 0);
+        lcd.print(" ");
+        blockCount -= 1;
+      }
+  
+      (this->*updateSettings)();
+      
+      if (joystick->getButton()) {
+        break;
+      }
+    }
+    saveSettingsInStorage();
+  }
+
+  void selectNameMenu() {
+    lcd.setCursor(2, 0);
+    lcd.print(settings.playerName);
+    lcd.setCursor(2, 0);
+    lcd.print("Press to save!");
+    lcd.setCursor(2, 2);
+    lcd.cursor();
+    
+    int letterIndex = 0;
+    char name[13];
+    strcpy(name, settings.playerName);
+    
+    while (!joystick->getButton()) {
+      int x = joystick->detectMoveX();
+      int y = joystick->detectMoveY();
+
+      if (x != 0) {
+        letterIndex += x;
+        if (letterIndex < 0) {
+          letterIndex = PLAYER_NAME_LENGTH - 2;
+        } else if (letterIndex == PLAYER_NAME_LENGTH - 1) {
+          letterIndex = 0;
+        }
+        lcd.setCursor(letterIndex + 2, 0);
+      } else if (y != 0) {
+        name[letterIndex] += y;
+        switch (name[letterIndex]) {
+          case 'a' - 1:
+            name[letterIndex] = ' ';
+            break;
+          case 'Z' + 1:
+            name[letterIndex] = ' ';
+            break;
+          case ' ' - 1:
+            name[letterIndex] = 'Z';
+            break;
+          case ' ' + 1:
+            name[letterIndex] = 'a';
+            break;
+          case 'z' + 1:
+            name[letterIndex] = 'A';
+            break;
+          case 'A' - 1:
+            name[letterIndex] = 'z';
+            break;
+        }
+        lcd.print(name[letterIndex]);
+        lcd.setCursor(letterIndex + 2, 0);
+      }
+    }
+    saveSettingsInStorage();
+  }
+
+/*
+ * 
+ * ================= Scroll Logic =================
+ * 
+ */
 
   unsigned long lastScrollTime;
   const int scrollInterval = 500;
@@ -333,29 +395,49 @@ private:
       scrollCount += 1;
   }
 
+/*
+ * 
+ * ================= Highscore logic =================
+ * 
+ */
+ 
+  #define HIGHSCORE_COUNT 3
+  int highscores[HIGHSCORE_COUNT] = {0, 0, 0};
+  char highscoreNames[HIGHSCORE_COUNT][PLAYER_NAME_LENGTH];
+
   void updateHighscores(int hs) {
-    Serial.println(highscores[0]);
-    Serial.println(highscores[1]);
-    Serial.println(highscores[2]);
     if (hs > highscores[0]) {
+      // actual highscore numbers
       highscores[2] = highscores[1];
       highscores[1] = highscores[0];
       highscores[0] = hs;
+      // names corresponding to the highscores
+      strcpy(highscoreNames[2], highscoreNames[1]);
+      strcpy(highscoreNames[1], highscoreNames[0]);
+      strcpy(highscoreNames[0], settings.playerName);
     } else if (hs > highscores[1]) {
       highscores[2] = highscores[1];
       highscores[1] = hs;
+      strcpy(highscoreNames[2], highscoreNames[1]);
+      strcpy(highscoreNames[1], settings.playerName);
     } else if (hs > highscores[2]) {
       highscores[2] = hs;
+      strcpy(highscoreNames[2], settings.playerName);
     }
-    Serial.println(highscores[0]);
-    Serial.println(highscores[1]);
-    Serial.println(highscores[2]);
+    
+    // update what is shown in the highscore menu
     for (int i = 0; i < 3; ++ i) {
       char *s = menuSections[HIGHSCORE][i + 1].c_str();
-      sprintf(s, "%s: %d        ", playerName, highscores[i]);
+      sprintf(s, "%s: %d        ", highscoreNames[i], highscores[i]);
     }
     saveHighscoresInStorage();
   }
+
+/*
+ * 
+ * ================= Settings and persistent storage =================
+ * 
+ */
 
   void setContrast() {
     int value = map(settings.contrast, 0, 12, 0, 255);
@@ -373,8 +455,12 @@ private:
   }
 
   void loadFromStorage() {
-    EEPROM.get(0, settings);
-    EEPROM.get(sizeof(settings), highscores);
+    unsigned int eeoffset = 0;
+    EEPROM.get(eeoffset, settings);
+    eeoffset += sizeof(settings);
+    EEPROM.get(eeoffset, highscores);
+    eeoffset += sizeof(highscores);
+    EEPROM.get(eeoffset, highscoreNames);
   }
 
   void saveSettingsInStorage() {
@@ -382,7 +468,10 @@ private:
   }
 
   void saveHighscoresInStorage() {
-    EEPROM.put(sizeof(settings), highscores);
+    unsigned int eeoffset = sizeof(settings); 
+    EEPROM.put(eeoffset, highscores);
+    eeoffset += sizeof(highscores);
+    EEPROM.put(eeoffset, highscoreNames);
   }
 };
 

@@ -23,7 +23,18 @@ byte rightArrow[8] = {
   B00000,
 };
 
-#define U_ARROW 2
+#define L_ARROW 2
+byte leftArrow[8] = {
+  B00000,
+  B00100,
+  B01111,
+  B11111,
+  B01111,
+  B00100,
+  B00000,
+};
+
+#define U_ARROW 3
 byte upArrow[8] = {
   B00000,
   B00100,
@@ -34,7 +45,7 @@ byte upArrow[8] = {
   B01110,
 };
 
-#define D_ARROW 3
+#define D_ARROW 4
 byte downArrow[8] = {
   B01110,
   B01110,

@@ -12,6 +12,7 @@ public:
   #define MATRIX_HEIGHT 8
   #define MATRIX_WIDTH 8
   #define MAP_HEIGHT MATRIX_HEIGHT + 1
+  
   /*
    * song 0 -> POC procedurally generated map. initially with no sound (ironical I know)
    * song 1 ... maybe I'll reach that point
