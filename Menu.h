@@ -83,8 +83,7 @@ private:
       
   LiquidCrystal_74HC595 lcd;
   
-  #define PLAY 3
-  #define HIGHSCORE 4
+  #define HIGHSCORE 3
   #define SETTINGS 1
   #define ABOUT 2
 
@@ -92,16 +91,13 @@ private:
   #define CONTRAST 2
   #define MAT_BRIGHTNESS 3
   #define DIFFICULTY 4
-
-  #define POC 1
-  #define SONG1 2
   
   #define MAX_SECTION_LINE_LENGTH 12
   
   const String title = "Kinda OSU!";
   
-  const int menuLengths[5] = {5, 6, 5, 5, 5};
-  String menuSections[5][6] = { {
+  const int menuLengths[5] = {5, 6, 5, 5};
+  String menuSections[4][6] = { {
       "<" + title + ">",
       "Let's OSU!",
       "Highscore",
@@ -109,7 +105,7 @@ private:
       "About"
     }, {
       "<Settings>",
-      "Enter name", // todo
+      "Enter name",
       "Contrast",
       "Mat Brightnes",
       "Difficulty",
@@ -120,12 +116,6 @@ private:
       "By: Stefan R.",
       "Github: https://git.io/JDfIx",
       "Back"
-    }, {
-      "<Pick a Song>",
-      "POC",
-      "Song 1", // Ehey, macar sa ajung aici
-      "Song 2",
-      "Back",
     }, {
       "<Highscores>",
       "Player1: ___",
@@ -194,32 +184,22 @@ private:
     if (buttonState != 1) {
       return false;
     }
+
+    Serial.println(currentMenu);
+    Serial.println(sectionIndex);
     
     switch (currentMenu) {
       case MAIN_MENU:
-        switch (sectionIndex) {
-          case 1:
-            currentMenu = PLAY;
-            break;
-          case 2:
-            currentMenu = HIGHSCORE;
-            break;
-          case 3:
-            currentMenu = SETTINGS;
-            break;
-          case 4:
-            currentMenu = ABOUT;
-            break;
-        }
-        break;
-      case PLAY:
-        if (sectionIndex == POC) {
+        if (sectionIndex == 1) {
           int score = game->playPOC(lcd);
           updateHighscores(score);
-        } else if (sectionIndex == SONG1) {
-          //game->playSong();
-        } else if (sectionIndex == menuLengths[PLAY] - 1) {
           currentMenu = MAIN_MENU;
+        } else if (sectionIndex == 2) {
+          currentMenu = HIGHSCORE;
+        } else if (sectionIndex == 3) {
+          currentMenu = SETTINGS;
+        } else if (sectionIndex == 4) {
+          currentMenu = ABOUT;
         }
         break;
       case SETTINGS:
@@ -246,6 +226,9 @@ private:
         }
         break;
     }
+
+    Serial.println("menu");
+    Serial.println(currentMenu);
     return true;
   }
 
@@ -258,7 +241,6 @@ private:
     lcd.write(byte(R_ARROW));
     lcd.print(" ");
     lcd.print(menuSections[currentMenu][sectionIndex]);
-    Serial.println(menuSections[currentMenu][sectionIndex]);
 
     if (sectionIndex < menuLengths[currentMenu] - 1) {
       lcd.setCursor(DISPLAY_WIDTH - 1, 1);

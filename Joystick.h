@@ -1,22 +1,14 @@
 #ifndef JOYSTICK_H
 #define JOYSTICK_H
 
+#include "Button.h"
+
 class Joystick {
 public:
   Joystick(Joystick &other) = delete;
   Joystick operator=(const Joystick &) = delete;
 
   static Joystick* getInstance();
-
-  void checkAllStates(bool* v) {
-    // left, down, up, right
-    int x = getStateX();
-    v[0] = v[0] || (x == -1);
-    v[3] = v[3] || (x == 1);
-    int y = getStateY();
-    v[1] = v[1] || (y == -1);
-    v[2] = v[2] || (y == 1);
-  }
   
   int getStateX() { return getState(xPin); }
   int getStateY() { return getState(yPin); }
@@ -24,45 +16,26 @@ public:
   int detectMoveY() { return detectMove(yPin, joyMovedY); }
 
   bool getButton() {
-    int reading = digitalRead(swPin);
-    if (reading != lastButtonReading) {
-      lastDebounceTime = millis();
-    }
-    lastButtonReading = reading;
-    
-    if ((millis() - lastDebounceTime) > debounceDelay) {
-      if (reading != buttonState) {
-        buttonState = reading;
-        if (buttonState == 0) {
-          return 1;
-        }
-      }
-    }
-    return 0;
+    return button.getState();
   }
   
 private:
 
-  Joystick() {
+  Joystick(): button(swPin) {
     pinMode(xPin, INPUT);
     pinMode(yPin, INPUT);
-    pinMode(swPin, INPUT_PULLUP); 
     joyMovedX = false;
     joyMovedY = false;
-    buttonState = false;
-    lastDebounceTime = millis();
   }
 
   static Joystick *instance;
   
   const int xPin = A1, yPin = A0, swPin = 2;
   const int minThreshold = 200, maxThreshold = 800;
-  
-  const int debounceDelay = 50;
-  unsigned long lastDebounceTime;
-  int lastButtonReading;
 
-  bool joyMovedX, joyMovedY, buttonState;
+  Button button;
+
+  bool joyMovedX, joyMovedY;
 
   int detectMove(int pin, bool &joyMoved) {
     int state = getState(pin);
