@@ -185,9 +185,6 @@ private:
       return false;
     }
 
-    Serial.println(currentMenu);
-    Serial.println(sectionIndex);
-    
     switch (currentMenu) {
       case MAIN_MENU:
         if (sectionIndex == 1) {

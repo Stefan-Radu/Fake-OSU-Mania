@@ -16,7 +16,7 @@ public:
   int detectMoveY() { return detectMove(yPin, joyMovedY); }
 
   bool getButton() {
-    return button.getState();
+    return button.getPress();
   }
   
 private:

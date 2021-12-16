@@ -11,9 +11,21 @@ public:
     lastButtonReading = 1;
   }
 
+  // get state of the button (pressed or not)
   bool getState() {
     updateState();
     // make the switch so 1 is pressed
+    return !buttonState;
+  }
+
+  // detect a button press
+  bool getPress() {
+    bool lastState = buttonState;
+    updateState();
+    // we don't care if it was already pressed
+    if (lastState == 0) {
+      return false;
+    }
     return !buttonState;
   }
 
