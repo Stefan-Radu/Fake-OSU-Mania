@@ -2,6 +2,7 @@
 #define BUTTON_GROUP_H
 
 #include "Button.h"
+#include "Pins.h"
 
 class ButtonGroup {
 public:
@@ -26,8 +27,10 @@ private:
   static ButtonGroup* instance;
   
   Button buttons[buttonCount] = {
-    Button(A5), Button(A4),
-    Button(A3), Button(A2)
+    Button(buttonGroupButton1Pin),
+    Button(buttonGroupButton2Pin),
+    Button(buttonGroupButton3Pin),
+    Button(buttonGroupButton4Pin)
   };
 };
 

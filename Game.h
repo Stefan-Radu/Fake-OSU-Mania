@@ -6,6 +6,7 @@
 #include <LiquidCrystal_74HC595.h>
 #include "Joystick.h"
 #include "ButtonGroup.h"
+#include "Pins.h"
 
 
 class Game {
@@ -14,20 +15,20 @@ public:
   #define MATRIX_HEIGHT 8
   #define MATRIX_WIDTH 8
   #define MAP_HEIGHT MATRIX_HEIGHT + 1
-  
-  /*
-   * song 0 -> POC procedurally generated map. initially with no sound (ironical I know)
-   * song 1 ... maybe I'll reach that point
-   */
 
-  Game(int driverCount = 1, int brightness = 2, int song = 0): 
-       lc(dinPin, clockPin, loadPin, driverCount) {
+  Game(int brightness = 2, int song = 0): 
+       lc(matrixDinPin, matrixClockPin, matrixLoadPin, 1),
+       lcd(lcdDSPin, lcdClockPin, lcdLatchPin,
+          lcdShiftRegisterRSPin, lcdShiftRegisterEPin,
+          lcdShiftRegisterD4Pin, lcdShiftRegisterD5Pin,
+          lcdShiftRegisterD6Pin, lcdShiftRegisterD7Pin) {
+    
     srand(time(0));
-    for (int i = 0; i < driverCount; ++i) {
-      lc.shutdown(0, false); // turn off power saving, enables display
-      lc.setIntensity(0, brightness); // sets brightness (0~15 possible values)
-      lc.clearDisplay(i); // clear screen    
-    }
+
+    lc.shutdown(0, false); // turn off power saving, enables display
+    lc.setIntensity(0, brightness); // sets brightness (0~15 possible values)
+    lc.clearDisplay(0); // clear screen    
+    
     startAnimation();
     joystick = Joystick::getInstance();
     buttonGroup = ButtonGroup::getInstance();
@@ -41,17 +42,11 @@ public:
     }
   }
 
-  void updateStats(LiquidCrystal_74HC595 &lcd, int &s, float &l) {
-    lcd.clear();
-    lcd.setCursor(2, 0);
-    lcd.print("Score: ");
-    lcd.print(s);
-    lcd.setCursor(2, 1);
-    lcd.print("Lives: ");
-    lcd.print(int(l));
+  void updateDifficulty(float d) {
+    difficulty = d;
   }
 
-  int playPOC(LiquidCrystal_74HC595 &lcd) {
+  int playPOC() {
     unsigned long startTime = millis();
     
     lastStateChange = 0;
@@ -66,7 +61,7 @@ public:
           adder = 0.003, invCoeff = 3 - difficulty;
     
     bool buttonStates[ButtonGroup::buttonCount] = {0, 0, 0, 0};
-    updateStats(lcd, score, lives);
+    updateInGameStats(score, lives);
     int updateOrder[ButtonGroup::buttonCount] = {0, 1, 2, 3};
 
     while (true) {
@@ -93,7 +88,7 @@ public:
         }
 
         if (change) {
-          updateStats(lcd, score, lives);
+          updateInGameStats(score, lives);
         }
 
         if (lives <= 0) {
@@ -118,36 +113,16 @@ public:
       buttonGroup->updateAllStates(buttonStates);
     }
 
-    lcd.clear();
-    lcd.setCursor(3, 0);
-    lcd.print("Game Over!");
-    lcd.setCursor(1, 1);
-    lcd.print("You did GREAT!");
-    
     endGameAnimation(gameDelay / 4, updateOrder);
-    while (joystick->getButton() != 1);
-
-    lcd.clear();
-    lcd.setCursor(2, 0);
-    lcd.print("Score: ");
-    lcd.print(score);
-    lcd.setCursor(2, 1);
-    lcd.print("Duration: ");
-    lcd.print((millis() - startTime) / 1000);
-    lcd.print("s");
-    while (joystick->getButton() != 1);
+    displayEndGameStats(score, startTime);
     
     return score;
-  }
-
-  void updateDifficulty(float d) {
-    difficulty = d;
   }
   
 private:
 
   LedControl lc;
-  const int dinPin = 12, clockPin = 11, loadPin = 10;
+  LiquidCrystal_74HC595 lcd;
   
   Joystick* joystick = nullptr;
   ButtonGroup *buttonGroup = nullptr;
@@ -165,49 +140,15 @@ private:
     B00000000,
     B00000000,
   };
+  
   int currentRow = MAP_HEIGHT - 2;
   unsigned long lastStateChange;
 
-  void startAnimation() {
-    for (int i = 0; i < MATRIX_HEIGHT; ++i) {
-      for (int j = 0; j < MATRIX_WIDTH; ++ j) {
-        lc.setLed(0, i, j, true);
-        delay(10);
-      }
-    }
-  
-    for (int i = 0; i < MATRIX_HEIGHT; ++i) {
-      for (int j = 0; j < MATRIX_WIDTH; ++ j) {
-        lc.setLed(0, i, j, false);
-        delay(10);
-      }
-    }
-  }
-
-  void endGameAnimation(int d, int *order) {
-    for (int i = 0; i < MAP_HEIGHT * 20; ++i) {
-      currentRow += 1;
-      if (currentRow == MAP_HEIGHT) {
-        currentRow = 0;
-      }
-      generateNewLine(8, order);
-      displayMatrix();
-      delay(d);
-    }
-    for (int i = 0; i < MAP_HEIGHT; ++i) {
-      currentRow += 1;
-      if (currentRow == MAP_HEIGHT) {
-        currentRow = 0;
-      }
-      int updateRow = currentRow + 1;
-      if (updateRow == MAP_HEIGHT) {
-        updateRow = 0;
-      }
-      matrixMap[updateRow] = B00000000;
-      displayMatrix();
-      delay(d);
-    }
-  }
+/*
+ * 
+ * ================= Game Logic =================
+ * 
+ */
 
   void displayMatrix() {
     int index = currentRow;
@@ -251,7 +192,83 @@ private:
         break;
       }
     };
-  }  
+  }
+
+/*
+ * 
+ * ================= Animations & Display =================
+ * 
+ */
+
+  void updateInGameStats(int &s, float &l) {
+    lcd.clear();
+    lcd.setCursor(2, 0);
+    lcd.print("Score: ");
+    lcd.print(s);
+    lcd.setCursor(2, 1);
+    lcd.print("Lives: ");
+    lcd.print(int(l));
+  }
+
+  void displayEndGameStats(int score, int startTime) {
+    lcd.clear();
+    lcd.setCursor(2, 0);
+    lcd.print("Score: ");
+    lcd.print(score);
+    lcd.setCursor(2, 1);
+    lcd.print("Duration: ");
+    lcd.print((millis() - startTime) / 1000);
+    lcd.print("s");
+    joystick->waitForPress();
+  }
+
+  void endGameAnimation(int d, int *order) {
+    lcd.clear();
+    lcd.setCursor(3, 0);
+    lcd.print("Game Over!");
+    lcd.setCursor(1, 1);
+    lcd.print("You did GREAT!");
+    
+    for (int i = 0; i < MAP_HEIGHT * 20; ++i) {
+      currentRow += 1;
+      if (currentRow == MAP_HEIGHT) {
+        currentRow = 0;
+      }
+      generateNewLine(8, order);
+      displayMatrix();
+      delay(d);
+    }
+    for (int i = 0; i < MAP_HEIGHT; ++i) {
+      currentRow += 1;
+      if (currentRow == MAP_HEIGHT) {
+        currentRow = 0;
+      }
+      int updateRow = currentRow + 1;
+      if (updateRow == MAP_HEIGHT) {
+        updateRow = 0;
+      }
+      matrixMap[updateRow] = B00000000;
+      displayMatrix();
+      delay(d);
+    }
+    joystick->waitForPress();
+  }
+
+  void startAnimation() {
+    for (int i = 0; i < MATRIX_HEIGHT; ++i) {
+      for (int j = 0; j < MATRIX_WIDTH; ++ j) {
+        lc.setLed(0, i, j, true);
+        delay(10);
+      }
+    }
+  
+    for (int i = 0; i < MATRIX_HEIGHT; ++i) {
+      for (int j = 0; j < MATRIX_WIDTH; ++ j) {
+        lc.setLed(0, i, j, false);
+        delay(10);
+      }
+    }
+  }
 };
 
 #endif

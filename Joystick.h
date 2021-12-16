@@ -1,6 +1,7 @@
 #ifndef JOYSTICK_H
 #define JOYSTICK_H
 
+#include "Pins.h"
 #include "Button.h"
 
 class Joystick {
@@ -10,32 +11,34 @@ public:
 
   static Joystick* getInstance();
   
-  int getStateX() { return getState(xPin); }
-  int getStateY() { return getState(yPin); }
-  int detectMoveX() { return detectMove(xPin, joyMovedX); }
-  int detectMoveY() { return detectMove(yPin, joyMovedY); }
+  int getStateX() { return getState(joystickXPin); }
+  int getStateY() { return getState(joystickYPin); }
+  int detectMoveX() { return detectMove(joystickXPin, joyMovedX); }
+  int detectMoveY() { return detectMove(joystickYPin, joyMovedY); }
 
   bool getButton() {
     return button.getPress();
   }
+
+  // do nothing until a button press
+  void waitForPress() {
+    while (!getButton());
+  }
   
 private:
 
-  Joystick(): button(swPin) {
-    pinMode(xPin, INPUT);
-    pinMode(yPin, INPUT);
+  Joystick(): button(joystickSWPin) {
+    pinMode(joystickXPin, INPUT);
+    pinMode(joystickYPin, INPUT);
     joyMovedX = false;
     joyMovedY = false;
   }
 
   static Joystick *instance;
   
-  const int xPin = A1, yPin = A0, swPin = 2;
-  const int minThreshold = 200, maxThreshold = 800;
-
   Button button;
-
   bool joyMovedX, joyMovedY;
+  const int minThreshold = 200, maxThreshold = 800;
 
   int detectMove(int pin, bool &joyMoved) {
     int state = getState(pin);

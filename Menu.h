@@ -5,6 +5,7 @@
 #include "Joystick.h"
 #include "Characters.h"
 #include "Game.h"
+#include "Pins.h"
 #include <EEPROM.h>
 
 // TODO: singleton
@@ -14,14 +15,17 @@ public:
   #define DISPLAY_WIDTH 16
   #define DISPLAY_HEIGHT 2
 
-  Menu(): lcd(dsPin, clockPin, latchPin, rs, e, d4, d5, d6, d7) {
+  Menu(): lcd(lcdDSPin, lcdClockPin, lcdLatchPin,
+          lcdShiftRegisterRSPin, lcdShiftRegisterEPin,
+          lcdShiftRegisterD4Pin, lcdShiftRegisterD5Pin,
+          lcdShiftRegisterD6Pin, lcdShiftRegisterD7Pin) {
     joystick = Joystick::getInstance();
     sectionIndex = 1;
     currentMenu = MAIN_MENU;
     cursorRow = 1;
     
     // lcd related
-    pinMode(v0, OUTPUT);
+    pinMode(lcdV0Pin, OUTPUT);
     
     lcd.createChar(BLOCK, block);
     lcd.createChar(L_ARROW, leftArrow);
@@ -77,9 +81,6 @@ private:
     int difficulty = 1; // 0 - 12
     char playerName[PLAYER_NAME_LENGTH + 1];
   } settings;
-
-  const int v0 = 9, rs = 1, e = 3, d4 = 4, d5 = 5, d6 = 6, d7 = 7,
-            dsPin = 4, clockPin = 7, latchPin = 8;
       
   LiquidCrystal_74HC595 lcd;
   
@@ -188,7 +189,7 @@ private:
     switch (currentMenu) {
       case MAIN_MENU:
         if (sectionIndex == 1) {
-          int score = game->playPOC(lcd);
+          int score = game->playPOC();
           updateHighscores(score);
           currentMenu = MAIN_MENU;
         } else if (sectionIndex == 2) {
@@ -455,7 +456,7 @@ private:
 
   void setContrast() {
     int value = map(settings.contrast, 0, 12, 0, 255);
-    analogWrite(v0, value);
+    analogWrite(lcdV0Pin, value);
   }
 
   void setMatrixBrightness() {
