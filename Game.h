@@ -5,7 +5,6 @@
 #include <LiquidCrystal_74HC595.h>
 #include "Joystick.h"
 #include <time.h>
-#include "MP3Player.h"
 
 class Game {
 public:
@@ -29,7 +28,6 @@ public:
     }
     startAnimation();
     joystick = Joystick::getInstance();
-    mp3Player = MP3Player::getInstance();
   }
 
   void updateBrightness(int value) {
@@ -138,10 +136,6 @@ public:
     return score;
   }
 
-  void playSong() {
-    mp3Player->play();
-  }
-
   void updateDifficulty(float d) {
     difficulty = d;
   }
@@ -151,7 +145,6 @@ private:
   LedControl lc;
   const int dinPin = 12, clockPin = 11, loadPin = 10;
   Joystick* joystick = nullptr;
-  MP3Player* mp3Player = nullptr;
   float difficulty;
 
   byte matrixMap[MAP_HEIGHT] {

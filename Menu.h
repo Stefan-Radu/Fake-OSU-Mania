@@ -217,7 +217,7 @@ private:
           int score = game->playPOC(lcd);
           updateHighscores(score);
         } else if (sectionIndex == SONG1) {
-          game->playSong();
+          //game->playSong();
         } else if (sectionIndex == menuLengths[PLAY] - 1) {
           currentMenu = MAIN_MENU;
         }

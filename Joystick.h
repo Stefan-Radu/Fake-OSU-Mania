@@ -24,8 +24,7 @@ public:
   int detectMoveY() { return detectMove(yPin, joyMovedY); }
 
   bool getButton() {
-    //int reading = digitalRead(swPin);
-    int reading = getStateX() == 1;
+    int reading = digitalRead(swPin);
     if (reading != lastButtonReading) {
       lastDebounceTime = millis();
     }
