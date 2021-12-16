@@ -2,9 +2,10 @@
 #define GAME_H
 
 #include <LedControl.h>
-#include <LiquidCrystal.h>
+#include <LiquidCrystal_74HC595.h>
 #include "Joystick.h"
 #include <time.h>
+#include "MP3Player.h"
 
 class Game {
 public:
@@ -28,6 +29,7 @@ public:
     }
     startAnimation();
     joystick = Joystick::getInstance();
+    mp3Player = MP3Player::getInstance();
   }
 
   void updateBrightness(int value) {
@@ -38,7 +40,7 @@ public:
     }
   }
 
-  void updateStats(LiquidCrystal &lcd, int &s, float &l) {
+  void updateStats(LiquidCrystal_74HC595 &lcd, int &s, float &l) {
     lcd.clear();
     lcd.setCursor(2, 0);
     lcd.print("Score: ");
@@ -48,7 +50,7 @@ public:
     lcd.print(int(l));
   }
 
-  int playPOC(LiquidCrystal &lcd) {
+  int playPOC(LiquidCrystal_74HC595 &lcd) {
     unsigned long startTime = millis();
     
     lastStateChange = 0;
@@ -136,6 +138,10 @@ public:
     return score;
   }
 
+  void playSong() {
+    mp3Player->play();
+  }
+
   void updateDifficulty(float d) {
     difficulty = d;
   }
@@ -143,8 +149,9 @@ public:
 private:
 
   LedControl lc;
-  const int dinPin = A2, clockPin = 11, loadPin = 10;
+  const int dinPin = 12, clockPin = 11, loadPin = 10;
   Joystick* joystick = nullptr;
+  MP3Player* mp3Player = nullptr;
   float difficulty;
 
   byte matrixMap[MAP_HEIGHT] {

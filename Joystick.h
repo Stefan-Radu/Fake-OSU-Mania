@@ -21,10 +21,11 @@ public:
   int getStateX() { return getState(xPin); }
   int getStateY() { return getState(yPin); }
   int detectMoveX() { return detectMove(xPin, joyMovedX); }
-  int detectMoveY() { return -detectMove(yPin, joyMovedY); }
+  int detectMoveY() { return detectMove(yPin, joyMovedY); }
 
   bool getButton() {
-    int reading = digitalRead(swPin);
+    //int reading = digitalRead(swPin);
+    int reading = getStateX() == 1;
     if (reading != lastButtonReading) {
       lastDebounceTime = millis();
     }
@@ -39,10 +40,6 @@ public:
       }
     }
     return 0;
-  }
-
-  ~Joystick() {
-    delete instance;
   }
   
 private:

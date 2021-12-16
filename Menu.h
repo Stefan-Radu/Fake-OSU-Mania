@@ -1,7 +1,7 @@
 #ifndef MENU_H
 #define MENU_H
 
-#include <LiquidCrystal.h>
+#include <LiquidCrystal_74HC595.h>
 #include "Joystick.h"
 #include "Characters.h"
 #include "Game.h"
@@ -14,7 +14,7 @@ public:
   #define DISPLAY_WIDTH 16
   #define DISPLAY_HEIGHT 2
 
-  Menu(): lcd(RS, enable, d4, d5, d6, d7) {
+  Menu(): lcd(dsPin, clockPin, latchPin, rs, e, d4, d5, d6, d7) {
     joystick = Joystick::getInstance();
     sectionIndex = 1;
     currentMenu = MAIN_MENU;
@@ -22,12 +22,15 @@ public:
     
     // lcd related
     pinMode(v0, OUTPUT);
+    
     lcd.createChar(BLOCK, block);
     lcd.createChar(L_ARROW, leftArrow);
     lcd.createChar(R_ARROW, rightArrow);
     lcd.createChar(U_ARROW, upArrow);
     lcd.createChar(D_ARROW, downArrow);
+    
     lcd.begin(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    lcd.clear();
     lcd.noCursor();
     lcd.noBlink();
     
@@ -43,7 +46,7 @@ public:
     // TODO un comment this
     // showStartMessage();
 
-    // update logic. this should be called sepparately
+    // update logic. this should be called sepparately    
     showMenuSections();
   }
 
@@ -74,11 +77,11 @@ private:
     int difficulty = 1; // 0 - 12
     char playerName[PLAYER_NAME_LENGTH + 1];
   } settings;
-  
-  const int RS = 13, enable = 6, d4 = A3, d5 = 4,
-             d6 = 8, d7 = 7, v0 = 9;
 
-  LiquidCrystal lcd;
+  const int v0 = 9, rs = 1, e = 3, d4 = 4, d5 = 5, d6 = 6, d7 = 7,
+            dsPin = 4, clockPin = 7, latchPin = 8;
+      
+  LiquidCrystal_74HC595 lcd;
   
   #define PLAY 3
   #define HIGHSCORE 4
@@ -91,6 +94,7 @@ private:
   #define DIFFICULTY 4
 
   #define POC 1
+  #define SONG1 2
   
   #define MAX_SECTION_LINE_LENGTH 12
   
@@ -143,7 +147,7 @@ private:
   }
 
   bool updateCursor() {
-    int dir = joystick->detectMoveY();
+    int dir = -joystick->detectMoveY();
     if (dir == 0) return false;
 
     if (cursorRow == 0 && dir == 1 && sectionIndex < menuLengths[currentMenu] - 1) {
@@ -212,6 +216,8 @@ private:
         if (sectionIndex == POC) {
           int score = game->playPOC(lcd);
           updateHighscores(score);
+        } else if (sectionIndex == SONG1) {
+          game->playSong();
         } else if (sectionIndex == menuLengths[PLAY] - 1) {
           currentMenu = MAIN_MENU;
         }
@@ -336,7 +342,7 @@ private:
         }
         lcd.setCursor(letterIndex + offset, 0);
       } else if (y != 0) {
-        name[letterIndex] -= y; // minus cuz I consider down as +
+        name[letterIndex] += y;
         switch (name[letterIndex]) {
           case 'a' - 1:
             name[letterIndex] = ' ';
