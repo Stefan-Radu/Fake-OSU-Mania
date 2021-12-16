@@ -1,12 +1,10 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include <time.h>
 #include <LedControl.h>
 #include <LiquidCrystal_74HC595.h>
 #include "Joystick.h"
-#include "ButtonGroup.h"
-
+#include <time.h>
 
 class Game {
 public:
@@ -30,7 +28,6 @@ public:
     }
     startAnimation();
     joystick = Joystick::getInstance();
-    buttonGroup = ButtonGroup::getInstance();
   }
 
   void updateBrightness(int value) {
@@ -64,10 +61,9 @@ public:
     static const int maxLives = 50;
     float lives = maxLives, coeff = difficulty, 
           adder = 0.003, invCoeff = 3 - difficulty;
-    
-    bool buttonStates[ButtonGroup::buttonCount] = {0, 0, 0, 0};
+    bool joyStates[4] = {0, 0, 0, 0};
     updateStats(lcd, score, lives);
-    int updateOrder[ButtonGroup::buttonCount] = {0, 1, 2, 3};
+    int updateOrder[4] = {0, 1, 2, 3};
 
     while (true) {
       unsigned long timeNow = millis();
@@ -81,7 +77,7 @@ public:
         
         for (int j = 0; j < MATRIX_WIDTH; j += 2) {
           bool onMatrix = (matrixMap[lastRow] & (1 << j)) != 0;
-          if (onMatrix != buttonStates[3 - (j / 2)]) {
+          if (onMatrix != joyStates[3 - (j / 2)]) {
             lives = max(0, lives - 1.0 * coeff);
             change = true;
           }
@@ -109,13 +105,13 @@ public:
         
         lastStateChange = timeNow;
         for (int i = 0; i < 4; ++i) {
-          buttonStates[i] = 0;   
+          joyStates[i] = 0;   
         }
         coeff += adder;
         invCoeff = max(0.0, invCoeff - adder);
       }
 
-      buttonGroup->updateAllStates(buttonStates);
+      joystick->checkAllStates(joyStates);
     }
 
     lcd.clear();
@@ -148,10 +144,7 @@ private:
 
   LedControl lc;
   const int dinPin = 12, clockPin = 11, loadPin = 10;
-  
   Joystick* joystick = nullptr;
-  ButtonGroup *buttonGroup = nullptr;
-  
   float difficulty;
 
   byte matrixMap[MAP_HEIGHT] {
