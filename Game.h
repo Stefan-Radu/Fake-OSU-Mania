@@ -1,7 +1,6 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include <time.h>
 #include <LedControl.h>
 #include <LiquidCrystal_74HC595.h>
 #include "Joystick.h"
@@ -23,7 +22,7 @@ public:
           lcdShiftRegisterD4Pin, lcdShiftRegisterD5Pin,
           lcdShiftRegisterD6Pin, lcdShiftRegisterD7Pin) {
     
-    srand(time(0));
+    randomSeed(analogRead(0));
 
     lc.shutdown(0, false); // turn off power saving, enables display
     lc.setIntensity(0, brightness); // sets brightness (0~15 possible values)
@@ -62,7 +61,8 @@ public:
     
     bool buttonStates[ButtonGroup::buttonCount] = {0, 0, 0, 0};
     updateInGameStats(score, lives);
-    int updateOrder[ButtonGroup::buttonCount] = {0, 1, 2, 3};
+    
+    int sliderLength[MATRIX_WIDTH / 2] = {0, 0, 0, 0};
 
     while (true) {
       unsigned long timeNow = millis();
@@ -99,13 +99,10 @@ public:
         if (currentRow == MAP_HEIGHT) {
           currentRow = 0;
         }
-        generateNewLine(coeff, updateOrder);
+        generateNewLine(coeff, sliderLength);
         displayMatrix();
         
         lastStateChange = timeNow;
-        for (int i = 0; i < 4; ++i) {
-          buttonStates[i] = 0;   
-        }
         coeff += adder;
         invCoeff = max(0.0, invCoeff - adder);
       }
@@ -113,7 +110,7 @@ public:
       buttonGroup->updateAllStates(buttonStates);
     }
 
-    endGameAnimation(gameDelay / 4, updateOrder);
+    endGameAnimation(gameDelay / 4, sliderLength);
     displayEndGameStats(score, startTime);
     
     return score;
@@ -167,29 +164,32 @@ private:
     y = k;
   }
   
-  void generateNewLine(float coeff, int* order) {
+  void generateNewLine(float coeff, int* sliderLength) {
     int updateRow = currentRow + 1;
     if (updateRow == MAP_HEIGHT) {
       updateRow = 0;
     }
 
     static const int threshold = 80;
-    // random shuffle
-    for (int i = 0; i < 4; ++ i) {
-      swap(order[i], order[rand() % 4]);
-    }
     
     matrixMap[updateRow] = B00000000;
     for (int i = 0; i < MATRIX_WIDTH; i += 2) {
-      int index = order[i] * 2;
-      if (matrixMap[currentRow] & (3 << index) != 0) {
-        if (rand() % 100 < min(threshold, 50 * coeff)) {
-          matrixMap[updateRow] ^= (3 << index);
-          break;
-        }
-      } else if (rand() % 100 < min(threshold, 5 * coeff)) {
-        matrixMap[updateRow] ^= (3 << index);
-        break;
+      if (sliderLength[i / 2] != 0) {
+        matrixMap[updateRow] ^= (3 << i);
+        --sliderLength[i / 2];
+        continue;
+      }
+      if (random(1000) < 2 * coeff) {
+        sliderLength[i / 2] = 2 + random(6);
+        continue; 
+      }
+
+      if (matrixMap[currentRow] & (3 << i) != 0) {
+        continue;
+      }
+      
+      if (random(100) < min(threshold, 7 * coeff)) {
+        matrixMap[updateRow] ^= (3 << i);
       }
     };
   }
@@ -222,7 +222,7 @@ private:
     joystick->waitForPress();
   }
 
-  void endGameAnimation(int d, int *order) {
+  void endGameAnimation(int d, int *sliderLength) {
     lcd.clear();
     lcd.setCursor(3, 0);
     lcd.print("Game Over!");
@@ -234,7 +234,7 @@ private:
       if (currentRow == MAP_HEIGHT) {
         currentRow = 0;
       }
-      generateNewLine(8, order);
+      generateNewLine(8, sliderLength);
       displayMatrix();
       delay(d);
     }
