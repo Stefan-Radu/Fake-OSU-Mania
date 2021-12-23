@@ -12,11 +12,6 @@
 
 class Game {
 public:
-
-  #define MATRIX_HEIGHT 8
-  #define MATRIX_WIDTH 8
-  #define MAP_HEIGHT MATRIX_HEIGHT + 1
-
   Game(int brightness = 2): 
        lc(matrixDinPin, matrixClockPin, matrixLoadPin, 1),
        lcd(lcdDSPin, lcdClockPin, lcdLatchPin,
@@ -50,15 +45,12 @@ public:
 
   int playSurvival() {
     unsigned long startTime = millis();
-    for (int i = 0; i < MAP_HEIGHT; ++i) {
-      matrixMap[i] = B00000000;
-    }
-    lc.clearDisplay(0);
-
+    clearMatrix();
+    
     currentRow = 0, lastStateChange = 0, score = 0;
     int gameDelay = 250, scoreIncrement = difficulty;
-    static const int maxLives = 50;
-    float lives = maxLives, coeff = difficulty, 
+
+    float lives = MAX_LIVES, coeff = difficulty, 
           adder = 0.003, invCoeff = 3 - difficulty;
 
     updateInGameDisplayedStats(score, lives);
@@ -83,7 +75,7 @@ public:
           }
           else if (onMatrix == true) {
             score += scoreIncrement;
-            lives = min(maxLives, lives + 2.0 * invCoeff);
+            lives = min(MAX_LIVES, lives + 2.0 * invCoeff);
             change = true;
           }
         }
@@ -112,113 +104,112 @@ public:
     }
 
     endGameAnimation(gameDelay / 4, sliderLength);
-    displayEndGameStats(score, startTime);
+    displaySurvivalEndGameStats(score, startTime);
     
     return score;
   }
 
-  int playSong(int song) {
-    for (int i = 0; i < MAP_HEIGHT; ++i) {
-      matrixMap[i] = B00000000;
-    }
-    lc.clearDisplay(0);
+  int playSong(int song, String name) {
+    clearMatrix();
+    int totalBadHits = 0;
+    bool finished = false;
 
-    master->selectSongTransmission(song);
-    
-    static const int maxLives = 30;
-    currentRow = 0, lastStateChange = 0;
-    score = 0, lives = maxLives;
-    
-    updateInGameDisplayedStats(score, lives);
-
-    int sliderLength = 0, sliderColumn = 0, 
-        melodyDisplayIndex = -1, melodyRefillIndex = 0,
-        melodyNoteIndex = -1, lastLitColumnIndex = -1;
-
-    bool canRefill = refillMelodyBuffer(melodyRefillIndex),
-         finished = false;
-
-    int badHits = 0, goodHits = 0;
-
-    const int tempo = BASE_TEMPO + (difficulty - 2) * TEMPO_MULTIPLYER;
-    const int wholeNoteDuration = 60000 / tempo * 4; // 60 s / tempo * 4 beats
-    const int melodyBarDuration = wholeNoteDuration / WHOLE_NOTE_BAR_COUNT;
-
-    // TODO replace with animation
-    delay(2000);
-         
-    while (true) {
-      unsigned long timeNow = millis(); 
-      if (timeNow - lastStateChange > melodyBarDuration) {
-        int lastRow = currentRow - MATRIX_HEIGHT + 1;
-        if (lastRow < 0) {
-          lastRow += MAP_HEIGHT;
-        }
-
-        bool anyLine = false;
-        for (int j = 0; j < MATRIX_WIDTH; j += 2) {
-          bool onMatrix = (matrixMap[lastRow] & (3 << j)) != 0;
-          int columnIndex = 3 - (j / 2);
-          // update sound to be played
-          if (onMatrix == true) {
-            anyLine = true;
-            if (columnIndex != lastLitColumnIndex) {
-              lastLitColumnIndex = columnIndex;
-              melodyNoteIndex += 1;
-              if (melodyNoteIndex == MELODY_BUFFER_LENGTH) {
-                melodyNoteIndex = 0;
+    master->selectSongTransmission(song); {
+      currentRow = 0, lastStateChange = 0;
+      score = 0, lives = MAX_LIVES;
+      
+      updateInGameDisplayedStats(score, lives);
+  
+      byte sliderLength = 0, sliderColumn = 0, 
+          melodyDisplayIndex = -1, melodyRefillIndex = 0,
+          melodyNoteIndex = -1, lastLitColumnIndex = -1;
+  
+      bool canRefill = refillMelodyBuffer(melodyRefillIndex);
+  
+      int badHits = 0, goodHits = 0;
+  
+      const int tempo = BASE_TEMPO + (difficulty - 2) * TEMPO_MULTIPLYER;
+      const int wholeNoteDuration = 60000 / tempo * 4; // 60 s / tempo * 4 beats
+      const int melodyBarDuration = wholeNoteDuration / WHOLE_NOTE_BAR_COUNT;
+  
+      // TODO replace with animation
+      delay(2000);
+           
+      while (true) {
+        unsigned long timeNow = millis(); 
+        if (timeNow - lastStateChange > melodyBarDuration) {
+          int lastRow = currentRow - MATRIX_HEIGHT + 1;
+          if (lastRow < 0) {
+            lastRow += MAP_HEIGHT;
+          }
+  
+          bool anyLine = false;
+          for (int j = 0; j < MATRIX_WIDTH; j += 2) {
+            bool onMatrix = (matrixMap[lastRow] & (3 << j)) != 0;
+            int columnIndex = 3 - (j / 2);
+            // update sound to be played
+            if (onMatrix == true) {
+              anyLine = true;
+              if (columnIndex != lastLitColumnIndex) {
+                lastLitColumnIndex = columnIndex;
+                melodyNoteIndex += 1;
+                if (melodyNoteIndex == MELODY_BUFFER_LENGTH) {
+                  melodyNoteIndex = 0;
+                }
+                updateStats(badHits, goodHits);
+                updateInGameDisplayedStats(score, lives);
+                totalBadHits += badHits;
+                badHits = 0, goodHits = 0;
               }
-              updateStats(badHits, goodHits);
-              updateInGameDisplayedStats(score, lives);
-              badHits = 0, goodHits = 0;
             }
-          }
-          // update stats & play sounds
-          if (onMatrix != buttonStates[columnIndex]) {
-            noTone(speakerPin);
-            badHits += 1;
-          } else if (onMatrix == true) {
-            goodHits += 1;
-            // for sound pauses
-            if (melodyBuffer[melodyNoteIndex].note != 0) {
-              tone(speakerPin, melodyBuffer[melodyNoteIndex].note);
-            } else {
+            // update stats & play sounds
+            if (onMatrix != buttonStates[columnIndex]) {
               noTone(speakerPin);
+              badHits += 1;
+            } else if (onMatrix == true) {
+              goodHits += 1;
+              // for sound pauses
+              if (melodyBuffer[melodyNoteIndex].note != 0) {
+                tone(speakerPin, melodyBuffer[melodyNoteIndex].note);
+              } else {
+                noTone(speakerPin);
+              }
             }
           }
+  
+          if (!anyLine && finished) {
+            break;
+          }
+  
+          if (lives <= 0) {
+            break;
+          }
+  
+          currentRow += 1;
+          if (currentRow == MAP_HEIGHT) {
+            currentRow = 0;
+          }
+          displayMatrix();
+          
+          if (!finished) {
+            finished = generateNewLine(sliderLength, sliderColumn, 
+                melodyDisplayIndex, melodyRefillIndex, canRefill);
+          } else {
+            getAndResetUpdateRow();
+          }
+          
+          lastStateChange = timeNow;
         }
-
-        if (!anyLine && finished) {
-          break;
-        }
-
-        if (lives <= 0) {
-          break;
-        }
-
-        currentRow += 1;
-        if (currentRow == MAP_HEIGHT) {
-          currentRow = 0;
-        }
-        displayMatrix();
-        
-        if (!finished) {
-          finished = generateNewLine(sliderLength, sliderColumn, 
-              melodyDisplayIndex, melodyRefillIndex, canRefill);
-        } else {
-          getAndResetUpdateRow();
-        }
-        
-        lastStateChange = timeNow;
+  
+        buttonGroup->updateAllStates(buttonStates);
       }
-
-      buttonGroup->updateAllStates(buttonStates);
     }
 
     noTone(speakerPin);
-
-    //endGameAnimation(gameDelay / 4, sliderLength);
-    //displayEndGameStats(score, startTime);
+    endGameAnimation(finished);
+    songEndMessage(name, finished);
+    displaySongEndGameStats(score, totalBadHits);
+    clearMatrix();
     
     return score;
   }
@@ -260,7 +251,7 @@ private:
  * 
  */
 
-  bool refillMelodyBuffer(int &melodyBufferIndex) {
+  bool refillMelodyBuffer(byte &melodyBufferIndex) {
     /*
      * Requests melody parts from slave.
      * returns true if there is more to receive
@@ -294,17 +285,6 @@ private:
  * ================= Game Logic =================
  * 
  */
-
-  void displayMatrix() {
-    int index = currentRow;
-    for (int i = 0; i < MATRIX_HEIGHT; ++i) {
-      lc.setRow(0, i, matrixMap[index]);
-      --index;
-      if (index == -1) {
-        index = MAP_HEIGHT - 1;
-      }
-    }
-  }
 
   void updateStats(float bad, float good) {
     static const int maxLives = 30;
@@ -352,8 +332,8 @@ private:
     };
   }
 
-  bool generateNewLine(int &sliderLength, int &sliderColumn, 
-      int &melodyDisplayIndex, int &melodyRefillIndex, bool &canRefill) {
+  bool generateNewLine(byte &sliderLength, byte &sliderColumn, 
+      byte &melodyDisplayIndex, byte &melodyRefillIndex, bool &canRefill) {
         
     if (sliderLength == 0) {
       melodyDisplayIndex += 1;
@@ -406,25 +386,49 @@ private:
  * 
  */
  
-  void updateInGameDisplayedStats(int s, int l) {
-    lcd.clear();
-    lcd.setCursor(2, 0);
-    lcd.print("Score: ");
-    lcd.print(s);
-    lcd.setCursor(2, 1);
-    lcd.print("Lives: ");
-    lcd.print(l);
+  void displayMatrix() {
+    int index = currentRow;
+    for (int i = 0; i < MATRIX_HEIGHT; ++i) {
+      lc.setRow(0, i, matrixMap[index]);
+      --index;
+      if (index == -1) {
+        index = MAP_HEIGHT - 1;
+      }
+    }
   }
 
-  void displayEndGameStats(int score, int startTime) {
+  void clearMatrix() {
+    for (int i = 0; i < MAP_HEIGHT; ++i) {
+      matrixMap[i] = B00000000;
+    }
+    lc.clearDisplay(0);
+  }
+
+  void displayIndentedMessage(int row, String prefix, int &value, String suffix = "") {
+    lcd.setCursor(2, row);
+    lcd.print(prefix);
+    lcd.print(value);
+    lcd.print(suffix);
+  }
+ 
+  void updateInGameDisplayedStats(int s, int l) {
     lcd.clear();
-    lcd.setCursor(2, 0);
-    lcd.print("Score: ");
-    lcd.print(score);
-    lcd.setCursor(2, 1);
-    lcd.print("Duration: ");
-    lcd.print((millis() - startTime) / 1000);
-    lcd.print("s");
+    displayIndentedMessage(1, "Lives: ", l);
+    displayIndentedMessage(0, "Score: ", s);
+  }
+
+  void displaySurvivalEndGameStats(int score, int startTime) {
+    lcd.clear();
+    displayIndentedMessage(0, "Score: ", score);
+    int duration = (millis() - startTime) / 1000;
+    displayIndentedMessage(1, "Duration: ", duration, "s");
+    joystick->waitForPress();
+  }
+
+  void displaySongEndGameStats(int score, int badHits) {
+    lcd.clear();
+    displayIndentedMessage(0, "Score: ", score);
+    displayIndentedMessage(1, "Bad hits: ", badHits);
     joystick->waitForPress();
   }
 
@@ -460,18 +464,77 @@ private:
     joystick->waitForPress();
   }
 
+  void endGameAnimation(bool won) {
+    for (int i = 0; i < MATRIX_HEIGHT * 3; ++i) {
+      currentRow += 1;
+      if (currentRow == MAP_HEIGHT) {
+        currentRow = 0;
+      }
+      int updateRow = currentRow + 1;
+      if (updateRow == MAP_HEIGHT) {
+        updateRow = 0;
+      }
+      if (i % 2 == 0 || i >= MATRIX_HEIGHT) {
+        matrixMap[updateRow] = B00000000;
+      } else {
+        matrixMap[updateRow] = B11111111;
+      }
+      displayMatrix();
+      delay(ANIMATION_DELAY);
+    }
+
+    byte symbol[MATRIX_HEIGHT] {
+      B00000000,
+      B01100110,
+      B01100110,
+      B01100110,
+      B00000000,
+      B01000010,
+      B00111100,
+      B00000000
+    };
+
+    if (!won) {
+      // make it sad
+      byte aux = symbol[5];
+      symbol[5] = symbol[6];
+      symbol[6] = aux;
+    }
+  
+    for (int i = 0; i < MATRIX_HEIGHT; ++i) {
+      lc.setRow(0, i, symbol[i]);
+      delay(ANIMATION_DELAY);
+    }
+  }
+
+  void songEndMessage(String name, bool win) {
+    lcd.clear();
+    lcd.setCursor(3, 0);
+    lcd.print("Game Over!");
+    lcd.setCursor(1, 1);
+    if (win) {
+      lcd.print("Congratz ");
+      lcd.print(name);
+    }
+    else {
+      lcd.print("Quite bad ");
+      lcd.print(name);
+    }
+    joystick->waitForPress();
+  }
+
   void startAnimation() {
     for (int i = 0; i < MATRIX_HEIGHT; ++i) {
       for (int j = 0; j < MATRIX_WIDTH; ++ j) {
         lc.setLed(0, i, j, true);
-        delay(10);
+        delay(ANIMATION_DELAY_SMALL);
       }
     }
   
     for (int i = 0; i < MATRIX_HEIGHT; ++i) {
       for (int j = 0; j < MATRIX_WIDTH; ++ j) {
         lc.setLed(0, i, j, false);
-        delay(10);
+        delay(ANIMATION_DELAY_SMALL);
       }
     }
   }

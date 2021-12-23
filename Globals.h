@@ -44,6 +44,8 @@ const int speakerPin = 5;
  * ==========================================
  */
 
+#define SLAVE_NUMBER 7
+
 /* SETTINGS CONSTANTS */
 #define MIN_SLIDER_BLOCK_COUNT 1
 
@@ -60,19 +62,23 @@ const int speakerPin = 5;
 #define MAX_DIFFICULTY_BLOCK_COUNT 3
 
 /* MENU CONSTANTS */
-
 #define MAIN_MENU 0
 
+/* LCD */
 #define DISPLAY_WIDTH 16
 #define DISPLAY_HEIGHT 2
 
-
-#define SLAVE_NUMBER 7
+/* MATRIX */
+#define MATRIX_HEIGHT 8
+#define MATRIX_WIDTH 8
+#define MAP_HEIGHT MATRIX_HEIGHT + 1
 
 /* SONGS */
 #define HARRY_POTTER 0
 
 /* GAME CONSTANTS */
+#define MAX_LIVES 30
+
 #define MELODY_REQUEST_COUNT 7
 // each melody part consists of note & duration => *2
 // note & duration are ints => *(sizeof(int))
@@ -85,5 +91,8 @@ const int speakerPin = 5;
 #define BASE_TEMPO 110
 #define TEMPO_MULTIPLYER 15
 #define WHOLE_NOTE_BAR_COUNT 32
+
+#define ANIMATION_DELAY_SMALL 10
+#define ANIMATION_DELAY 50
 
 #endif

@@ -188,7 +188,7 @@ private:
         if (sectionIndex == 1) {
           //int score = game->playPOC();
           //updateHighscores(score);
-          game->playSong(0);
+          game->playSong(0, String(settings.playerName));
           currentMenu = MAIN_MENU;
         } else if (sectionIndex == 2) {
           currentMenu = HIGHSCORE;
