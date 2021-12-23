@@ -48,7 +48,7 @@ public:
     setContrast();
     setDifficulty();
     // TODO un comment this
-    // showStartMessage();
+    showStartMessage();
 
     // update logic. this should be called sepparately    
     showMenuSections();

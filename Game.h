@@ -37,7 +37,7 @@ public:
     if (0 <= value && value <= 15) {
       for (int i = 0; i < lc.getDeviceCount(); ++i) {
         lc.setIntensity(0, value); // sets brightness (0~15 possible values)    
-      } 
+      }
     }
   }
 
