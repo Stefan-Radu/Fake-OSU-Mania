@@ -34,12 +34,10 @@ void receiveHandler(int numBytes) {
      * whill be opened.
      */
     currentSongIndex = Wire.read();
-    if (currentSongIndex < MELODY_COUNT) {
-      melodyFile = SD.open(melodyFileNames[currentSongIndex], FILE_READ);
-      if (!melodyFile) {
-        Serial.println("Could not open file");
-        while (true);
-      }
+    melodyFile = SD.open(melodyFileNames[currentSongIndex], FILE_READ);
+    if (!melodyFile) {
+      Serial.println("Could not open file");
+      while (true);
     }
   } else {
     /*
@@ -115,6 +113,7 @@ void melodyPartsRequestHandler() {
     int note = readIntFromMelodyFile();
     if (note == -1) {
       wireWriteInt(END_OF_FILE);
+      melodyFile.close();
       return;
     }
     int duration = readIntFromMelodyFile();

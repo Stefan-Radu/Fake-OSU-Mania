@@ -3,9 +3,11 @@
 
 #include <LedControl.h>
 #include <LiquidCrystal_74HC595.h>
+#include <Wire.h>
 #include "Joystick.h"
 #include "ButtonGroup.h"
-#include "Pins.h"
+#include "Globals.h"
+#include "Master.h"
 
 
 class Game {
@@ -31,6 +33,7 @@ public:
     startAnimation();
     joystick = Joystick::getInstance();
     buttonGroup = ButtonGroup::getInstance();
+    master = Master::getInstance();
   }
 
   void updateBrightness(int value) {
@@ -45,9 +48,10 @@ public:
     difficulty = d;
   }
 
-  int playPOC() {
+  int playSurvival() {
     unsigned long startTime = millis();
-    
+
+    currentRow = 0;
     lastStateChange = 0;
     for (int i = 0; i < MAP_HEIGHT; ++i) {
       matrixMap[i] = B00000000;
@@ -58,8 +62,7 @@ public:
     static const int maxLives = 50;
     float lives = maxLives, coeff = difficulty, 
           adder = 0.003, invCoeff = 3 - difficulty;
-    
-    bool buttonStates[ButtonGroup::buttonCount] = {0, 0, 0, 0};
+
     updateInGameStats(score, lives);
     
     int sliderLength[MATRIX_WIDTH / 2] = {0, 0, 0, 0};
@@ -99,8 +102,8 @@ public:
         if (currentRow == MAP_HEIGHT) {
           currentRow = 0;
         }
-        generateNewLine(coeff, sliderLength);
         displayMatrix();
+        generateNewLine(coeff, sliderLength);
         
         lastStateChange = timeNow;
         coeff += adder;
@@ -115,11 +118,112 @@ public:
     
     return score;
   }
+
+  int playSong(int song) {
+    currentRow = 0;
+    lastStateChange = 0;
+    for (int i = 0; i < MAP_HEIGHT; ++i) {
+      matrixMap[i] = B00000000;
+    }
+    lc.clearDisplay(0);
+
+    master->selectSongTransmission(song);
+    
+    int score = 0;
+    static const int maxLives = 50;
+    float lives = maxLives;
+    
+    updateInGameStats(score, lives);
+
+    int sliderLength = 0, sliderColumn = 0, 
+        melodyDisplayIndex = -1, melodyRefillIndex = 0,
+        melodyNoteIndex = -1, lastLitColumnIndex = -1;
+    
+    bool canRefill = refillMelodyBuffer(melodyRefillIndex),
+         finished = false;
+
+    // TODO replace with animation
+    delay(2000);
+         
+    while (true) {
+      unsigned long timeNow = millis();
+      
+      if (timeNow - lastStateChange > MELODY_BAR_DURATION) {
+        bool change = false;
+        int lastRow = currentRow - MATRIX_HEIGHT + 1;
+        if (lastRow < 0) {
+          lastRow += MAP_HEIGHT;
+        }
+
+        bool anyLine = false;
+        for (int j = 0; j < MATRIX_WIDTH; j += 2) {
+          bool onMatrix = (matrixMap[lastRow] & (3 << j)) != 0;
+          int columnIndex = 3 - (j / 2);
+          if (onMatrix != buttonStates[columnIndex]) {
+            noTone(speakerPin);
+          } else if (onMatrix == true) {
+            anyLine = true;
+            if (columnIndex != lastLitColumnIndex) {
+              lastLitColumnIndex = columnIndex;
+              melodyNoteIndex += 1;
+              if (melodyNoteIndex == MELODY_BUFFER_LENGTH) {
+                melodyNoteIndex = 0;
+              }
+            }
+            /*
+             * handle pauses
+             */
+            if (melodyBuffer[melodyNoteIndex].note != 0) {
+              tone(speakerPin, melodyBuffer[melodyNoteIndex].note);
+            } else {
+              noTone(speakerPin);
+            }
+          }
+        }
+
+        if (!anyLine && finished) {
+          break;
+        }
+        
+//        if (change) {
+//          updateInGameStats(score, lives);
+//        }
+
+        if (lives <= 0) {
+          break;
+        }
+
+        currentRow += 1;
+        if (currentRow == MAP_HEIGHT) {
+          currentRow = 0;
+        }
+        displayMatrix();
+        if (!finished) {
+          finished = generateNewLine(sliderLength, sliderColumn, 
+              melodyDisplayIndex, melodyRefillIndex, canRefill);
+        } else {
+          getAndResetUpdateRow();
+        }
+        
+        lastStateChange = timeNow;
+      }
+
+      buttonGroup->updateAllStates(buttonStates);
+    }
+
+    noTone(speakerPin);
+
+    //endGameAnimation(gameDelay / 4, sliderLength);
+    //displayEndGameStats(score, startTime);
+    
+    return score;
+  }
   
 private:
 
   LedControl lc;
   LiquidCrystal_74HC595 lcd;
+  Master *master;
   
   Joystick* joystick = nullptr;
   ButtonGroup *buttonGroup = nullptr;
@@ -137,9 +241,49 @@ private:
     B00000000,
     B00000000,
   };
-  
-  int currentRow = MAP_HEIGHT - 2;
+
+  int currentRow;
   unsigned long lastStateChange;
+
+  struct {
+    int note, divider;
+  } melodyBuffer[MELODY_BUFFER_LENGTH];
+  
+  bool buttonStates[ButtonGroup::buttonCount];
+/*
+ * 
+ * ================= Melody Transfer =================
+ * 
+ */
+
+  bool refillMelodyBuffer(int &melodyBufferIndex) {
+    /*
+     * Requests melody parts from slave.
+     * returns true if there is more to receive
+     * and false otherwise
+     */
+    Wire.requestFrom(SLAVE_NUMBER, MELODY_BYTES_TO_RECEIVE);
+    while (true) {
+      int value;
+      Wire.readBytes((byte*)&value, sizeof(value));
+      
+      if (value == MELODY_SECTION_END) {
+        return true;
+      } else if (value == MELODY_END) {
+        return false;
+      }
+      
+      int note = value, divider;
+      Wire.readBytes((byte*)&divider, sizeof(divider));
+
+      melodyBuffer[melodyBufferIndex++] = {
+        note, divider
+      };
+      if (melodyBufferIndex == MELODY_BUFFER_LENGTH) {
+        melodyBufferIndex = 0;
+      }
+    }
+  }
 
 /*
  * 
@@ -157,22 +301,24 @@ private:
       }
     }
   }
-
-  void swap(int &x, int &y) {
-    int k = x;
-    x = y;
-    y = k;
-  }
   
-  void generateNewLine(float coeff, int* sliderLength) {
+  /*
+   * sets the row to be updated to 0
+   * and returns its index
+   */
+  int getAndResetUpdateRow() {
     int updateRow = currentRow + 1;
     if (updateRow == MAP_HEIGHT) {
       updateRow = 0;
     }
+    matrixMap[updateRow] = B00000000;
+    return updateRow;
+  }
+  
+  void generateNewLine(float coeff, int* sliderLength) {
+    int updateRow = getAndResetUpdateRow();
 
     static const int threshold = 80;
-    
-    matrixMap[updateRow] = B00000000;
     for (int i = 0; i < MATRIX_WIDTH; i += 2) {
       if (sliderLength[i / 2] != 0) {
         matrixMap[updateRow] ^= (3 << i);
@@ -194,11 +340,61 @@ private:
     };
   }
 
+  bool generateNewLine(int &sliderLength, int &sliderColumn, 
+      int &melodyDisplayIndex, int &melodyRefillIndex, bool &canRefill) {
+        
+    if (sliderLength == 0) {
+      melodyDisplayIndex += 1;
+      if (melodyDisplayIndex == MELODY_BUFFER_LENGTH) {
+        melodyDisplayIndex = 0;
+      }
+      if (melodyDisplayIndex == melodyRefillIndex) {
+        if (canRefill) {
+          canRefill = refillMelodyBuffer(melodyRefillIndex);
+        } else {
+          return true;
+        }
+      }
+      if (melodyDisplayIndex != melodyRefillIndex) {
+        sliderLength = WHOLE_NOTE_BAR_COUNT / 
+            abs(melodyBuffer[melodyDisplayIndex].divider);
+        if (melodyBuffer[melodyDisplayIndex].divider < 0) {
+          sliderLength += sliderLength / 2;
+        }
+        int newColumn = melodyBuffer[melodyDisplayIndex].note % 4;
+        if (newColumn == sliderColumn) {
+          newColumn = (newColumn + 1) % 4;
+        }
+        sliderColumn = newColumn;
+      } else {
+        return true;
+      }
+    }
+    
+    --sliderLength;
+    byte litBits = 0;
+    int updateRow = getAndResetUpdateRow();
+    if (melodyBuffer[melodyDisplayIndex].note == 0) {
+      if (updateRow & 1) {
+        litBits = 1;
+      } else {
+        litBits = 2;
+      }
+    } else {
+      litBits = 3;
+    } 
+    matrixMap[updateRow] ^= (litBits << ((3 - sliderColumn) * 2));
+    
+    return false;
+  }
+
 /*
  * 
  * ================= Animations & Display =================
  * 
  */
+
+  // TODO sepparate those. start anim. display stats?
 
   void updateInGameStats(int &s, float &l) {
     lcd.clear();

@@ -2,7 +2,7 @@
 #define BUTTON_GROUP_H
 
 #include "Button.h"
-#include "Pins.h"
+#include "Globals.h"
 
 class ButtonGroup {
 public:
@@ -13,16 +13,17 @@ public:
   static ButtonGroup* getInstance();
 
   void updateAllStates(bool *states) {
-    int toneMultiplyer = 0;
+    // todo Move tone in game this is ingame logic
+    //int toneMultiplyer = 0;
     for (int i = 0; i < buttonCount; ++i) {
       states[i] = buttons[i].getState();
-      toneMultiplyer <<= 1;
-      toneMultiplyer ^= states[i];
+//      toneMultiplyer <<= 1;
+//      toneMultiplyer ^= states[i];
     }
 
-    if (toneMultiplyer) {
-      tone(speakerPin, 400 + 50 * toneMultiplyer, 50);
-    }
+//    if (toneMultiplyer) {
+//      tone(speakerPin, 400 + 50 * toneMultiplyer, 50);
+//    }
   }
   
   static const int buttonCount = 4;

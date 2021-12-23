@@ -1,7 +1,7 @@
 #ifndef JOYSTICK_H
 #define JOYSTICK_H
 
-#include "Pins.h"
+#include "Globals.h"
 #include "Button.h"
 
 class Joystick {

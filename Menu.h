@@ -5,7 +5,7 @@
 #include "Joystick.h"
 #include "Characters.h"
 #include "Game.h"
-#include "Pins.h"
+#include "Globals.h"
 #include <EEPROM.h>
 
 // TODO: singleton
@@ -48,7 +48,7 @@ public:
     setContrast();
     setDifficulty();
     // TODO un comment this
-    showStartMessage();
+    //showStartMessage();
 
     // update logic. this should be called sepparately    
     showMenuSections();
@@ -189,8 +189,9 @@ private:
     switch (currentMenu) {
       case MAIN_MENU:
         if (sectionIndex == 1) {
-          int score = game->playPOC();
-          updateHighscores(score);
+          //int score = game->playPOC();
+          //updateHighscores(score);
+          game->playSong(0);
           currentMenu = MAIN_MENU;
         } else if (sectionIndex == 2) {
           currentMenu = HIGHSCORE;
