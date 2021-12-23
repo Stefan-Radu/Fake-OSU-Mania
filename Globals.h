@@ -3,6 +3,7 @@
 
 /*
  * PINS
+ * ========================================
  */
 
 /* BUTTON GROUP */
@@ -40,7 +41,31 @@ const int speakerPin = 5;
 
 /*
  * OTHER CONSTANTS & DEFINES
+ * ==========================================
  */
+
+/* SETTINGS CONSTANTS */
+#define MIN_SLIDER_BLOCK_COUNT 1
+
+#define MIN_CONTRAST 40
+#define MAX_CONTRAST 160
+#define MAX_CONTRAST_BLOCK_COUNT 12
+
+#define MIN_MAT_BRIGHTNESS 1
+#define MAX_MAT_BRIGHTNESS 12
+#define MAX_MAT_BRIGHTNESS_BLOCK_COUNT 12
+
+#define MIN_DIFFICULTY 1
+#define MAX_DIFFICULTY 3
+#define MAX_DIFFICULTY_BLOCK_COUNT 3
+
+/* MENU CONSTANTS */
+
+#define MAIN_MENU 0
+
+#define DISPLAY_WIDTH 16
+#define DISPLAY_HEIGHT 2
+
 
 #define SLAVE_NUMBER 7
 
@@ -57,9 +82,8 @@ const int speakerPin = 5;
 #define MELODY_SECTION_END -2
 #define MELODY_END -1
 
-#define TEMPO 120
-#define WHOLE_NOTE_DURATION (60000 / TEMPO) * 4
+#define BASE_TEMPO 110
+#define TEMPO_MULTIPLYER 15
 #define WHOLE_NOTE_BAR_COUNT 32
-#define MELODY_BAR_DURATION (WHOLE_NOTE_DURATION / WHOLE_NOTE_BAR_COUNT)
 
 #endif

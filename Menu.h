@@ -11,9 +11,6 @@
 // TODO: singleton
 class Menu {
 public:
-  #define MAIN_MENU 0
-  #define DISPLAY_WIDTH 16
-  #define DISPLAY_HEIGHT 2
 
   Menu(): lcd(lcdDSPin, lcdClockPin, lcdLatchPin,
           lcdShiftRegisterRSPin, lcdShiftRegisterEPin,
@@ -43,7 +40,7 @@ public:
     // used to update highscore menu
     updateHighscores(0);
     
-    game = new Game(1, settings.matrixBrightness);
+    game = new Game(settings.matrixBrightness);
     
     setContrast();
     setDifficulty();
@@ -205,11 +202,12 @@ private:
         if (sectionIndex == ENTER_NAME) {
           selectNameMenu();
         } else if (sectionIndex == CONTRAST) {
-          sliderMenu(settings.contrast, &setContrast);
+          sliderMenu(settings.contrast, MAX_CONTRAST_BLOCK_COUNT, &setContrast);
         } else if (sectionIndex == MAT_BRIGHTNESS) {
-          sliderMenu(settings.matrixBrightness, &setMatrixBrightness);
+          sliderMenu(settings.matrixBrightness, MAX_MAT_BRIGHTNESS_BLOCK_COUNT,
+              &setMatrixBrightness);
         } else if (sectionIndex == DIFFICULTY) {
-          sliderMenu(settings.difficulty, &setDifficulty);
+          sliderMenu(settings.difficulty, MAX_DIFFICULTY_BLOCK_COUNT, &setDifficulty);
         } else if (sectionIndex == menuLengths[SETTINGS] - 1) {
           currentMenu = MAIN_MENU;
         }
@@ -225,9 +223,6 @@ private:
         }
         break;
     }
-
-    Serial.println("menu");
-    Serial.println(currentMenu);
     return true;
   }
 
@@ -251,16 +246,18 @@ private:
     }
   }
   
-  void sliderMenu(int &blockCount, void (Menu::*updateSettings)()) {
-    static const int maxBlockCount = 12;
-  
+  void sliderMenu(int &activeBlockCount, const int maxBlockCount,
+       void (Menu::*updateSettings)()) {
+
     lcd.clear();
-    lcd.setCursor(0, 0);
+    /* 4 comes from " -" & "+ " strings at each end */
+    int padding = (DISPLAY_WIDTH - 4 - maxBlockCount) / 2;
+    lcd.setCursor(padding, 0);
     lcd.print("- ");
-    for (int i = 0; i < blockCount; ++i) {
+    for (int i = 0; i < activeBlockCount; ++i) {
       lcd.write(byte(BLOCK));
     }
-    for (int i = blockCount; i < maxBlockCount; ++i) {
+    for (int i = activeBlockCount; i < maxBlockCount; ++i) {
       lcd.print(" ");
     }
     lcd.print(" +");
@@ -269,14 +266,14 @@ private:
   
     while (true) {
       int dir = joystick->detectMoveX();
-      if (dir == 1 && blockCount < maxBlockCount) {
-        lcd.setCursor(2 + blockCount, 0);
+      if (dir == 1 && activeBlockCount < maxBlockCount) {
+        lcd.setCursor(padding + 2 + activeBlockCount, 0);
         lcd.write(byte(BLOCK));
-        blockCount += 1;
-      } else if (dir == -1 && blockCount > 0) {
-        lcd.setCursor(1 + blockCount, 0);
+        activeBlockCount += 1;
+      } else if (dir == -1 && activeBlockCount > 1) {
+        lcd.setCursor(padding + 1 + activeBlockCount, 0);
         lcd.print(" ");
-        blockCount -= 1;
+        activeBlockCount -= 1;
       }
   
       (this->*updateSettings)();
@@ -456,17 +453,20 @@ private:
  */
 
   void setContrast() {
-    int value = map(settings.contrast, 0, 12, 0, 255);
+    int value = map(settings.contrast, MIN_SLIDER_BLOCK_COUNT,
+        MAX_CONTRAST_BLOCK_COUNT, MIN_CONTRAST, MAX_CONTRAST);
     analogWrite(lcdV0Pin, value);
   }
 
   void setMatrixBrightness() {
-    int value = map(settings.matrixBrightness, 0, 12, 0, 15);
+    int value = map(settings.matrixBrightness, MIN_SLIDER_BLOCK_COUNT,
+        MAX_MAT_BRIGHTNESS_BLOCK_COUNT, MIN_MAT_BRIGHTNESS, MAX_MAT_BRIGHTNESS);
     game->updateBrightness(value);
   }
 
   void setDifficulty() {
-    float value = 1.0 * map(settings.difficulty, 0, 12, 10000, 30000) / 10000;
+    int value = map(settings.difficulty, MIN_SLIDER_BLOCK_COUNT,
+        MAX_DIFFICULTY_BLOCK_COUNT, MIN_DIFFICULTY, MAX_DIFFICULTY);
     game->updateDifficulty(value);
   }
 
