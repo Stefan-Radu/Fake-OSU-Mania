@@ -48,7 +48,8 @@ const int speakerPin = 5;
 #define PLAYER_NAME_LENGTH 6
 #define DEBOUNCE_DELAY 50
 #define NO_NAME "Noname"
-  
+#define SCROLL_INTERVAL 500
+#define SCROLL_ENABLE_TIMEOUT 3000
 
 /* SETTINGS CONSTANTS */
 #define MIN_SLIDER_BLOCK_COUNT 1
@@ -89,6 +90,7 @@ const int speakerPin = 5;
 /* LCD */
 #define DISPLAY_WIDTH 16
 #define DISPLAY_HEIGHT 2
+#define DISPLAY_PADDED_WIDTH (DISPLAY_WIDTH - 3)
 
 /* MATRIX */
 #define MATRIX_HEIGHT 8
@@ -115,6 +117,10 @@ const int speakerPin = 5;
 #define BASE_TEMPO 100
 #define TEMPO_MULTIPLYER 20
 #define WHOLE_NOTE_BAR_COUNT 32
+
+#define NOTE_G4  392
+#define NOTE_D5  587
+#define CLICK_TONE_DURATION 30
 
 #define ANIMATION_DELAY_SMALL 10
 #define ANIMATION_DELAY 50

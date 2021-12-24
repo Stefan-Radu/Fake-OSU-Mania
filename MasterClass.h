@@ -1,5 +1,5 @@
-#ifndef MENU_H
-#define MENU_H
+#ifndef MASTER_CLASS_H
+#define MASTER_CLASS_H
 
 #include <LiquidCrystal_74HC595.h>
 #include "Joystick.h"
@@ -8,11 +8,10 @@
 #include "Globals.h"
 #include <EEPROM.h>
 
-// TODO: singleton
-class Menu {
+class MasterClass {
 public:
 
-  Menu(): lcd(lcdDSPin, lcdClockPin, lcdLatchPin,
+  MasterClass(): lcd(lcdDSPin, lcdClockPin, lcdLatchPin,
           lcdShiftRegisterRSPin, lcdShiftRegisterEPin,
           lcdShiftRegisterD4Pin, lcdShiftRegisterD5Pin,
           lcdShiftRegisterD6Pin, lcdShiftRegisterD7Pin) {
@@ -74,9 +73,9 @@ private:
   
   // settings are saved in and loaded from eeprom
   struct {
-    int contrast = 6; // 0 - 12
-    int matrixBrightness = 2; // 0 - 12
-    int difficulty = 1; // 0 - 12
+    int contrast; // 0 - 12
+    int matrixBrightness; // 0 - 12
+    int difficulty; // 0 - 12
     char playerName[PLAYER_NAME_LENGTH + 1];
   } settings;
       
@@ -229,6 +228,15 @@ private:
         currentMenu = PLAY_MENU;
         break;
     }
+
+    if (currentMenu == MAIN_MENU) {
+      tone(speakerPin, NOTE_D5, CLICK_TONE_DURATION);
+      tone(speakerPin, NOTE_G4, CLICK_TONE_DURATION);
+    } else {
+      tone(speakerPin, NOTE_G4, CLICK_TONE_DURATION);
+      tone(speakerPin, NOTE_D5, CLICK_TONE_DURATION);
+    }
+    
     return true;
   }
 
@@ -255,7 +263,7 @@ private:
   }
   
   void sliderMenu(int &activeBlockCount, const int maxBlockCount,
-       void (Menu::*updateSettings)()) {
+       void (MasterClass::*updateSettings)()) {
 
     lcd.clear();
     /* 4 comes from " -" & "+ " strings at each end */
@@ -374,20 +382,19 @@ private:
  */
 
   unsigned long lastScrollTime;
-  const int scrollInterval = 500;
   int scrollCount;
   
   void scrollLongLines() {
     unsigned long timeNow = millis();
-    if (scrollCount == 0 && timeNow - lastScrollTime < scrollInterval * 5) {
+    if (scrollCount == 0 && timeNow - lastScrollTime < SCROLL_ENABLE_TIMEOUT ) {
       return;
-    } else if (scrollCount != 0 && timeNow - lastScrollTime < scrollInterval) {
+    } else if (scrollCount != 0 && timeNow - lastScrollTime < SCROLL_INTERVAL) {
       return;
     }
 
     loadMenuSection(currentMenu);
-    int limit = menuSection[sectionIndex].length() - 14;
-    if (scrollCount == limit && timeNow - lastScrollTime < scrollInterval * 5) {
+    int limit = menuSection[sectionIndex].length() - DISPLAY_PADDED_WIDTH;
+    if (scrollCount == limit && timeNow - lastScrollTime < SCROLL_ENABLE_TIMEOUT ) {
       return;
     } else if (scrollCount == limit) {
       scrollCount = 0;
@@ -396,13 +403,13 @@ private:
       return;
     }
    
-    if (menuSection[sectionIndex].length() > 14) {
+    if (menuSection[sectionIndex].length() > DISPLAY_PADDED_WIDTH) {
       lcd.scrollDisplayLeft();
       lcd.setCursor(DISPLAY_WIDTH - 1 + scrollCount, cursorRow);
-      lcd.print(menuSection[sectionIndex][DISPLAY_WIDTH - 2 + scrollCount]);
+      lcd.print(menuSection[sectionIndex][DISPLAY_WIDTH - 3 + scrollCount]);
       int offset = 1 - cursorRow * 2;
       lcd.setCursor(0, 1 - cursorRow);
-      String padding = "  ";
+      String padding = "   ";
       for (int i = 0; i < scrollCount; ++ i) {
         padding += " ";
       }

@@ -1,16 +1,12 @@
 #include <Arduino.h>
-#include "Menu.h"
+#include "MasterClass.h"
 
 int main () {
   init ();  // initialize timers
-
-  // TODO game master class which will contain
-  // game state and menu and orchestrate all other components
-  // atm everything is in menu which doesn't make much sense overall
   
-  Menu menu;
+  MasterClass master;
   while (true) {
-    menu.display();
+    master.display();
   }
   
   Serial.flush (); // let serial printing finish
