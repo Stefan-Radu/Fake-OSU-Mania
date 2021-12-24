@@ -48,9 +48,11 @@ _Arduino Songs_ stored on the SDCard on the second board.
 ⚙   Wires - lots of them  
 ⚙   Shoe Box - 1  
 
-### Checkout the **Technical Documentation** [here](https://github.com/Stefan-Radu/kindaOSU/wiki/Technical-Documentation)
+## Checkout the **Technical Documentation** [here](https://github.com/Stefan-Radu/kindaOSU/wiki/Technical-Documentation)
 
-### 📸 Picture & Video 📽️
+
+## 📸 Picture & Video 📽️
+
 
 <div>
   <img width="80%" height="auto" src=assets/setup.png>
