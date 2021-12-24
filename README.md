@@ -50,4 +50,4 @@ _Arduino Songs_ stored on the SDCard.
 
 ### Picture & Video
 
-![Setup]("./assets/setup.png")
+![Setup](assets/setup.png)
