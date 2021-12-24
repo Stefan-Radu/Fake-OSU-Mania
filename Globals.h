@@ -64,11 +64,20 @@ const int speakerPin = 5;
 #define MAX_DIFFICULTY_BLOCK_COUNT 3
 
 /* MENU CONSTANTS */
-#define MAIN_MENU 0  
-#define HIGHSCORE_MENU 3
-#define SETTINGS_MENU 1
-#define ABOUT_MENU 2
-#define PLAY_MENU 4
+#define MAIN_MENU 0
+#define PLAY_MENU 1  
+#define HIGHSCORE_MENU 2
+#define SETTINGS_MENU 3
+#define ABOUT_MENU 4
+
+#define ENTER_NAME 1
+#define CONTRAST 2
+#define MAT_BRIGHTNESS 3
+#define DIFFICULTY 4
+
+#define SURVIVAL 4
+
+#define MAX_SECTION_LINE_LENGTH 12
 
 /* LCD */
 #define DISPLAY_WIDTH 16
@@ -85,6 +94,10 @@ const int speakerPin = 5;
 /* GAME CONSTANTS */
 #define MAX_LIVES 30
 
+#define BASE_TONE 400
+#define TONE_MULTIPLYER 50
+#define TONE_DURATION 50
+
 #define MELODY_REQUEST_COUNT 7
 // each melody part consists of note & duration => *2
 // note & duration are ints => *(sizeof(int))
@@ -94,6 +107,7 @@ const int speakerPin = 5;
 #define MELODY_SECTION_END -2
 #define MELODY_END -1
 
+#define MELODY_INNITIAL_DELAY 2000
 #define BASE_TEMPO 110
 #define TEMPO_MULTIPLYER 15
 #define WHOLE_NOTE_BAR_COUNT 32

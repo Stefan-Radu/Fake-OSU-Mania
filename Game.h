@@ -54,7 +54,7 @@ public:
 
     updateInGameDisplayedStats(score, lives);
     
-    int sliderLength[MATRIX_WIDTH / 2] = {0, 0, 0, 0};
+    byte sliderLength[MATRIX_WIDTH / 2] = {0, 0, 0, 0};
 
     while (true) {
       unsigned long timeNow = millis();
@@ -65,7 +65,8 @@ public:
         if (lastRow < 0) {
           lastRow += MAP_HEIGHT;
         }
-        
+
+        int toneCoeff = 0;
         for (int j = 0; j < MATRIX_WIDTH; j += 2) {
           bool onMatrix = (matrixMap[lastRow] & (1 << j)) != 0;
           if (onMatrix != buttonStates[3 - (j / 2)]) {
@@ -100,6 +101,15 @@ public:
       }
 
       buttonGroup->updateAllStates(buttonStates);
+      int toneCoeff = 0;
+      for (int i = 0; i < ButtonGroup::buttonCount; ++i) {
+          toneCoeff <<= 1;
+          toneCoeff ^= buttonStates[i];
+      }     
+      if (toneCoeff) {
+        tone(speakerPin, BASE_TONE + TONE_MULTIPLYER * toneCoeff,
+            TONE_DURATION);
+      }
     }
 
     endGameAnimation(gameDelay / 4, sliderLength);
@@ -131,7 +141,7 @@ public:
       const int wholeNoteDuration = 60000 / tempo * 4; // 60 s / tempo * 4 beats
       const int melodyBarDuration = wholeNoteDuration / WHOLE_NOTE_BAR_COUNT;
   
-      delay(2000);
+      delay(MELODY_INNITIAL_DELAY);
            
       while (true) {
         unsigned long timeNow = millis(); 
@@ -310,7 +320,7 @@ private:
     return updateRow;
   }
   
-  void generateNewLine(float coeff, int* sliderLength) {
+  void generateNewLine(float coeff, byte* sliderLength) {
     int updateRow = getAndResetUpdateRow();
 
     static const int threshold = 80;
@@ -435,12 +445,12 @@ private:
     joystick->waitForPress();
   }
 
-  void endGameAnimation(int d, int *sliderLength) {
+  void endGameAnimation(int d, byte *sliderLength) {
     lcd.clear();
     lcd.setCursor(3, 0);
     lcd.print(F("Game Over!"));
-    lcd.setCursor(1, 1);
-    lcd.print(F("You did GREAT!"));
+    lcd.setCursor(2, 1);
+    lcd.print(F("Not TOO bad!"));
     
     for (int i = 0; i < MAP_HEIGHT * 20; ++i) {
       currentRow += 1;

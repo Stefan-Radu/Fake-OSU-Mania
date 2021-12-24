@@ -13,17 +13,9 @@ public:
   static ButtonGroup* getInstance();
 
   void updateAllStates(bool *states) {
-    // todo Move tone in game this is ingame logic
-    //int toneMultiplyer = 0;
     for (int i = 0; i < buttonCount; ++i) {
       states[i] = buttons[i].getState();
-//      toneMultiplyer <<= 1;
-//      toneMultiplyer ^= states[i];
     }
-
-//    if (toneMultiplyer) {
-//      tone(speakerPin, 400 + 50 * toneMultiplyer, 50);
-//    }
   }
   
   static const int buttonCount = 4;

@@ -82,47 +82,40 @@ private:
       
   LiquidCrystal_74HC595 lcd;
 
-  #define ENTER_NAME 1
-  #define CONTRAST 2
-  #define MAT_BRIGHTNESS 3
-  #define DIFFICULTY 4
-  
-  #define MAX_SECTION_LINE_LENGTH 12
-
-  const byte menuLengths[5] = {5, 6, 5, 5, 6};
+  const byte menuLengths[5] = {5, 6, 5, 6, 5};
   String menuSection[6];
 
   void loadMenuSection(int which) {
-    if (which == 0) {
+    if (which == MAIN_MENU) {
       menuSection[0] = "<Kinda OSU!>",
       menuSection[1] = "Let's OSU!",
       menuSection[2] = "Highscore",
       menuSection[3] = "Settings",
       menuSection[4] = "About";
-    } else if (which == 1) {
-      menuSection[0] = "<Settings>",
-      menuSection[1] = "Enter name",
-      menuSection[2] = "Contrast",
-      menuSection[3] = "Mat Brightnes",
-      menuSection[4] = "Difficulty",
-      menuSection[5] = "Back";
-    } else if (which == 2) {
-      menuSection[0] = "<About>",
-      menuSection[1] = "Title: Kinda OSU!",
-      menuSection[2] = "By: Stefan R.",
-      menuSection[3] = "Github: https://git.io/JDfIx",
-      menuSection[4] = "Back";
-    } else if (which == 3) {
-      menuSection[0] = "<Highscores>",
-      loadHighscoresInMenuSection(),
-      menuSection[4] = "Back";
-    } else if (which == 4) {
+    } else if (which == PLAY_MENU) {
       menuSection[0] = "<Pick Mode>",
       menuSection[1] = "Harry Potter",
       menuSection[2] = "",
       menuSection[3] = "",
       menuSection[4] = "Survival",
       menuSection[5] = "Back";
+    } else if (which == HIGHSCORE_MENU) {
+      menuSection[0] = "<Highscores>",
+      loadHighscoresInMenuSection(),
+      menuSection[4] = "Back";
+    } else if (which == SETTINGS_MENU) {
+      menuSection[0] = "<Settings>",
+      menuSection[1] = "Enter name",
+      menuSection[2] = "Contrast",
+      menuSection[3] = "Mat Brightnes",
+      menuSection[4] = "Difficulty",
+      menuSection[5] = "Back";
+    } else if (which == ABOUT_MENU) {
+      menuSection[0] = "<About>",
+      menuSection[1] = "Title: Kinda OSU!",
+      menuSection[2] = "By: Stefan R.",
+      menuSection[3] = "Github: https://git.io/JDfIx",
+      menuSection[4] = "Back";
     }
   }
 
@@ -187,21 +180,9 @@ private:
 
     switch (currentMenu) {
       case MAIN_MENU:
-        if (sectionIndex == 1) {
-          //int score = game->playPOC();
-          //updateHighscores(score);
-//          game->playSong(0, String(settings.playerName));
-//          currentMenu = MAIN_MENU;
-          currentMenu = PLAY_MENU;
-        } else if (sectionIndex == 2) {
-          currentMenu = HIGHSCORE_MENU;
-        } else if (sectionIndex == 3) {
-          currentMenu = SETTINGS_MENU;
-        } else if (sectionIndex == 4) {
-          currentMenu = ABOUT_MENU;
-        }
+        currentMenu = sectionIndex;
         break;
-      case SETTINGS:
+      case SETTINGS_MENU:
         if (sectionIndex == ENTER_NAME) {
           selectNameMenu();
         } else if (sectionIndex == CONTRAST) {
@@ -211,12 +192,12 @@ private:
               &setMatrixBrightness);
         } else if (sectionIndex == DIFFICULTY) {
           sliderMenu(settings.difficulty, MAX_DIFFICULTY_BLOCK_COUNT, &setDifficulty);
-        } else if (sectionIndex == menuLengths[SETTINGS] - 1) {
+        } else if (sectionIndex == menuLengths[SETTINGS_MENU] - 1) {
           currentMenu = MAIN_MENU;
         }
         break;
-      case ABOUT:
-        if (sectionIndex == menuLengths[ABOUT] - 1) {
+      case ABOUT_MENU:
+        if (sectionIndex == menuLengths[ABOUT_MENU] - 1) {
           currentMenu = MAIN_MENU;
         }
         break;
@@ -228,7 +209,17 @@ private:
       case PLAY_MENU:
         if (sectionIndex == menuLengths[PLAY_MENU] - 1) {
           currentMenu = MAIN_MENU;
+          break;
         }
+        int score;
+        if (sectionIndex == SURVIVAL) {
+          score = game->playSurvival();
+        } else {
+          score = game->playSong(sectionIndex - 1, String(settings.playerName));
+        }
+        updateHighscores(score);
+        currentMenu = MAIN_MENU;
+        break;
     }
     return true;
   }
