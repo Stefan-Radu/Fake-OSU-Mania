@@ -42,12 +42,20 @@ public:
     difficulty = d;
   }
 
+  // fill all the matrix with the given byte
   void setMatrix(byte b) {
     for (int i = 0; i < MATRIX_HEIGHT; ++i) {
       lc.setRow(0, i, b);
     }
   }
 
+  /*
+   * modify score and lives based on how well you
+   * hit the procedurally generated tiles and sliders
+   * based on which buttons are pressed at a time a 
+   * distinctive sound will be played
+   * display friendly messaged and start / end animations
+   */
   int playSurvival() {
     unsigned long startTime = millis();
     clearMatrix();
@@ -124,6 +132,18 @@ public:
     return score;
   }
 
+  /*
+   * use data of a song (notes and duration) to display a 
+   * guide using vertial bars. hitting the bars plays the
+   * corresponding notes
+   * use tempo based on difficulty
+   * score increment & health drain / heal based on difficulty
+   *  and missed hits in on a single bar
+   * display appropriate messages & animations at the beggining
+   * and end of the game
+   * 
+   * each update to the game is made at an interval based on tempo & difficulty
+   */
   int playSong(byte song, const char *name) {
     clearMatrix();
     int totalBadHits = 0;
@@ -264,18 +284,21 @@ private:
  * 
  */
 
+  /*
+   * asks slave to prepare to transmit the next song
+   */
   void selectSongTransmission(int song) {
     Wire.beginTransmission(SLAVE_NUMBER);
     Wire.write(song);
     Wire.endTransmission();
   }
 
+  /*
+   * Requests melody parts from slave.
+   * returns true if there is more to receive
+   * and false otherwise
+   */
   bool refillMelodyBuffer(byte &melodyBufferIndex) {
-    /*
-     * Requests melody parts from slave.
-     * returns true if there is more to receive
-     * and false otherwise
-     */
     Wire.requestFrom(SLAVE_NUMBER, MELODY_BYTES_TO_RECEIVE);
     while (true) {
       int value;
@@ -305,6 +328,11 @@ private:
  * 
  */
 
+  /*
+   * used when playing a song
+   * some math I found fitting after some minutes
+   * of thinking and scribbling on the paper
+   */
   void updateStats(float bad, float good) {
     float perc = min(1, bad / (bad + good + 1));
     score += difficulty * (1 - perc);
@@ -324,7 +352,11 @@ private:
     matrixMap[updateRow] = B00000000;
     return updateRow;
   }
-  
+
+  /*
+   * used in survival
+   * randomly generates sliders and hit points
+   */
   void generateNewLine(float coeff, byte* sliderLength) {
     int updateRow = getAndResetUpdateRow();
 
@@ -350,6 +382,19 @@ private:
     };
   }
 
+  /*
+   * used when playing a song
+   * over multiple iteration displays a bar corresponding to
+   * the length of the note that should be played
+   * 
+   * if the note is a pause, display a dotted bar
+   * the length of the bar is based on a predefined length
+   * for a wholeNote and the duration divider of the current note
+   * 
+   * data for the bars is retrieved from the slave which reads
+   * it from an sd card. I use a small buffer and hold only partial data
+   * the logic for navigating and refiling the buffer is here as well
+   */
   bool generateNewLine(byte &sliderLength, byte &sliderColumn, 
       byte &melodyDisplayIndex, byte &melodyRefillIndex, bool &canRefill) {
         
@@ -403,7 +448,12 @@ private:
  * ================= Animations & Display =================
  * 
  */
- 
+
+  /*
+   * matrixMap works in reverse, so I fill each
+   * row going forwards in the matrix and
+   * backwards in the map
+   */
   void displayMatrix() {
     int index = currentRow;
     for (int i = 0; i < MATRIX_HEIGHT; ++i) {
@@ -450,6 +500,12 @@ private:
     joystick->waitForPress();
   }
 
+  /*
+   * used for Survival
+   * go through a few of the future positions at a
+   * faster rate
+   * then clear the matrix
+   */
   void endGameAnimation(int d, byte *sliderLength) {
     lcd.clear();
     lcd.setCursor(3, 0);
@@ -482,6 +538,13 @@ private:
     joystick->waitForPress();
   }
 
+  /*
+   * used for SONG
+   * falling horizontal bars
+   * clear
+   * then show smiley for win and 
+   * sad face for lose
+   */
   void endGameAnimation(bool won) {
     for (int i = 0; i < MATRIX_HEIGHT * 3; ++i) {
       currentRow += 1;
@@ -541,6 +604,11 @@ private:
     joystick->waitForPress();
   }
 
+  /*
+   * fill every cell in order
+   * shut every cell in order
+   * small delay
+   */
   void startAnimation() {
     for (int i = 0; i < MATRIX_HEIGHT; ++i) {
       for (int j = 0; j < MATRIX_WIDTH; ++ j) {

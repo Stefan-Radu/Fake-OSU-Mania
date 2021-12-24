@@ -2,6 +2,13 @@
 #define CHARACTERS_H
 
 #define BLOCK 0
+
+/*
+ * I don't store byte arrays for the carractes
+ * in order to save memory. they are created and
+ * forgotten
+ */
+
 void createBlock(LiquidCrystal_74HC595 &lcd) {
   byte block[8] = {
     B11111,

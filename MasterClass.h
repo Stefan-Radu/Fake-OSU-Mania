@@ -47,9 +47,8 @@ public:
     
     setContrast();
     setDifficulty();
-    // TODO un comment this
-    //showStartMessage();
-  
+    
+    showStartMessage();
     showMenuSections();
   }
 
@@ -84,6 +83,12 @@ private:
   const byte menuLengths[SECTION_COUNT] = {5, 7, 5, 7, 5};
   String menuSection[MAX_SUBSECTIONS_COUNT];
 
+  /*
+   * this function exists as a means of saving memory
+   * I save memory by allocating only for a section
+   * in detriment of negligeble time loss for loading it
+   * every time I need it
+   */
   void loadMenuSection(int which) {
     if (which == MAIN_MENU) {
       menuSection[0] = "<Kinda OSU!>",
@@ -114,7 +119,7 @@ private:
     } else if (which == ABOUT_MENU) {
       menuSection[0] = "<About>",
       menuSection[1] = "Title: Kinda OSU!",
-      menuSection[2] = "By: Stefan R.",
+      menuSection[2] = "By: Stefan Radu",
       menuSection[3] = "Github: https://git.io/JDfIx",
       menuSection[4] = "Back";
     }
@@ -155,15 +160,15 @@ private:
     lcd.clear();
     printIndentedMessage(0, "Wellcome ");
     delay(500);
-    printIndentedMessage(1, "and");
+    lcd.print("and");
     delay(1000);
-    lcd.print("Let's play");
+    printIndentedMessage(1, " Let's play");
     delay(1500);
     lcd.clear();
     delay(1000);
-    printIndentedMessage(0, "OSU! Mania");
+    printIndentedMessage(0, " OSU! Mania");
     delay(1500);
-    printIndentedMessage(1, "Kinda :P");
+    printIndentedMessage(1, "  Kinda :P");
     delay(2000);
     lcd.clear();
     delay(1000);
@@ -174,6 +179,11 @@ private:
     lcd.print(message);
   }
 
+  /*
+   * defines what happens for every section and
+   * submenu when the joystick button is pressed
+   * takes care of the sound played when the menu is changed
+   */
   bool switchMenu() {
     int buttonState = joystick->getButton();
     if (buttonState != 1) {
@@ -240,6 +250,15 @@ private:
     return true;
   }
 
+  /*
+   * takes care of the pagination. 
+   * if on the top row, only show down arrow
+   * if on the botton row, only show up arrow
+   * if a move on the Y axis does not cause a page
+   *  change, then ONLY the arrow will move
+   * else the arrow will stay in place and the page
+   *  will change accordingly
+   */
   void showMenuSections() {
     loadMenuSection(currentMenu);
     
@@ -261,7 +280,13 @@ private:
       lcd.write(byte(U_ARROW));
     }
   }
-  
+
+  /*
+   * display a slider menu with a custom number of blocks
+   * check joystick on X axis to increment / decrement the slider
+   * use function passed as parameter to update the value modified
+   * intended to be used in settings
+   */
   void sliderMenu(int &activeBlockCount, const int maxBlockCount,
        void (MasterClass::*updateSettings)()) {
 
@@ -301,8 +326,15 @@ private:
     saveSettingsInStorage();
   }
 
+  /*
+   * cycle through positions with joyLeft / joyRight
+   * cycle through letters at position with joyUp / joyDown
+   * press to save
+   * I made sure that you can cycle through small letters ->
+   *  big letters -> space -> small letters by handling
+   *  modifications at the edges in a cusom manner
+   */
   void selectNameMenu() {
-
     int offset = (DISPLAY_WIDTH - PLAYER_NAME_LENGTH) / 2;
     
     lcd.clear();
@@ -383,7 +415,15 @@ private:
 
   unsigned long lastScrollTime;
   int scrollCount;
-  
+
+  /*
+   * wait SCROLL_ENABLE_TIMEOUT ms then start scolling
+   * then, every SCROLL_INTERVAL ms scroll display to the left
+   * to keep the line not selected in place print it repeatedly 
+   *  with incresing padding
+   *  override unwanted characters caused by scrolling by printing
+   *  the correct carracter at an offset based on the scroll steps
+   */
   void scrollLongLines() {
     unsigned long timeNow = millis();
     if (scrollCount == 0 && timeNow - lastScrollTime < SCROLL_ENABLE_TIMEOUT ) {
@@ -438,7 +478,11 @@ private:
       menuSection[i + 1] += String(highscores[i]);
     }
   }
-  
+
+  /*
+   * insert the new highscore in it's corresponding place
+   *  by comparing it to all the rest by hand
+   */
   void updateHighscores(int hs) {
     if (hs > highscores[0]) {
       // actual highscore numbers

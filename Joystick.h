@@ -11,11 +11,14 @@ public:
 
   static Joystick* getInstance();
   
+  // for holds 
   int getStateX() { return getState(joystickXPin); }
   int getStateY() { return getState(joystickYPin); }
+  // for moves / flicks
   int detectMoveX() { return detectMove(joystickXPin, joyMovedX); }
   int detectMoveY() { return detectMove(joystickYPin, joyMovedY); }
 
+  // for presses
   bool getButton() {
     return button.getPress();
   }
@@ -40,6 +43,11 @@ private:
   bool joyMovedX, joyMovedY;
   const int minThreshold = 200, maxThreshold = 800;
 
+  /*
+   * detect if the joystick has moved on one of the
+   * axes. this will return 0 (false) after a move
+   * and until the joystick is reset. IT's NOT A HOLD
+   */
   int detectMove(int pin, bool &joyMoved) {
     int state = getState(pin);
     
@@ -55,6 +63,9 @@ private:
     return 0;
   }
 
+  /*
+   * detects hold direction on X and Y axis
+   */
   int getState(int pin) {
     int val = analogRead(pin);
     if (val >= maxThreshold) {

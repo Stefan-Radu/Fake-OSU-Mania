@@ -12,6 +12,11 @@ public:
   
   static ButtonGroup* getInstance();
 
+  /*
+   * receive an array corresponding to the 
+   * state of every button in the group
+   * fill it with the updated states
+   */
   void updateAllStates(bool *states) {
     for (int i = 0; i < buttonCount; ++i) {
       states[i] = buttons[i].getState();
