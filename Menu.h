@@ -67,7 +67,7 @@ public:
 
 private:
 
-  int sectionIndex, currentMenu, cursorRow;
+  byte sectionIndex, currentMenu, cursorRow;
 
   Game *game;
   Joystick *joystick;
@@ -82,8 +82,8 @@ private:
       
   LiquidCrystal_74HC595 lcd;
 
-  const byte menuLengths[5] = {5, 6, 5, 6, 5};
-  String menuSection[6];
+  const byte menuLengths[SECTION_COUNT] = {5, 7, 5, 7, 5};
+  String menuSection[MAX_SUBSECTIONS_COUNT];
 
   void loadMenuSection(int which) {
     if (which == MAIN_MENU) {
@@ -95,10 +95,11 @@ private:
     } else if (which == PLAY_MENU) {
       menuSection[0] = "<Pick Mode>",
       menuSection[1] = "Harry Potter",
-      menuSection[2] = "",
-      menuSection[3] = "",
-      menuSection[4] = "Survival",
-      menuSection[5] = "Back";
+      menuSection[2] = "Merry XMAS",
+      menuSection[3] = "Pink Panther",
+      menuSection[4] = "Star Wars",
+      menuSection[5] = "Survival",
+      menuSection[6] = "Back";
     } else if (which == HIGHSCORE_MENU) {
       menuSection[0] = "<Highscores>",
       loadHighscoresInMenuSection(),
@@ -109,7 +110,8 @@ private:
       menuSection[2] = "Contrast",
       menuSection[3] = "Mat Brightnes",
       menuSection[4] = "Difficulty",
-      menuSection[5] = "Back";
+      menuSection[5] = "Reset Hiscore",
+      menuSection[6] = "Back";
     } else if (which == ABOUT_MENU) {
       menuSection[0] = "<About>",
       menuSection[1] = "Title: Kinda OSU!",
@@ -152,24 +154,25 @@ private:
 
   void showStartMessage() {
     lcd.clear();
-    lcd.setCursor(2, 0);
-    lcd.print("Wellcome ");
+    printIndentedMessage(0, "Wellcome ");
     delay(500);
-    lcd.print("and");
-    lcd.setCursor(2, 1);
+    printIndentedMessage(1, "and");
     delay(1000);
     lcd.print("Let's play");
     delay(1500);
     lcd.clear();
     delay(1000);
-    lcd.setCursor(2, 0);
-    lcd.print("OSU! Mania");
+    printIndentedMessage(0, "OSU! Mania");
     delay(1500);
-    lcd.setCursor(2, 1);
-    lcd.print("Kinda :P");
+    printIndentedMessage(1, "Kinda :P");
     delay(2000);
     lcd.clear();
     delay(1000);
+  }
+
+  void printIndentedMessage(byte row, const char *message) {
+    lcd.setCursor(2, row);
+    lcd.print(message);
   }
 
   bool switchMenu() {
@@ -188,10 +191,15 @@ private:
         } else if (sectionIndex == CONTRAST) {
           sliderMenu(settings.contrast, MAX_CONTRAST_BLOCK_COUNT, &setContrast);
         } else if (sectionIndex == MAT_BRIGHTNESS) {
+          game->setMatrix(B00111100);
           sliderMenu(settings.matrixBrightness, MAX_MAT_BRIGHTNESS_BLOCK_COUNT,
               &setMatrixBrightness);
+          game->setMatrix(B00000000);
         } else if (sectionIndex == DIFFICULTY) {
           sliderMenu(settings.difficulty, MAX_DIFFICULTY_BLOCK_COUNT, &setDifficulty);
+        } else if (sectionIndex == RESET_HIGHSCORE) {
+          resetHighscores();
+          currentMenu = MAIN_MENU;
         } else if (sectionIndex == menuLengths[SETTINGS_MENU] - 1) {
           currentMenu = MAIN_MENU;
         }
@@ -215,10 +223,10 @@ private:
         if (sectionIndex == SURVIVAL) {
           score = game->playSurvival();
         } else {
-          score = game->playSong(sectionIndex - 1, String(settings.playerName));
+          score = game->playSong(sectionIndex - 1, settings.playerName);
         }
         updateHighscores(score);
-        currentMenu = MAIN_MENU;
+        currentMenu = PLAY_MENU;
         break;
     }
     return true;
@@ -412,7 +420,6 @@ private:
  * 
  */
  
-  #define HIGHSCORE_COUNT 3
   int highscores[HIGHSCORE_COUNT] = {0, 0, 0};
   char highscoreNames[HIGHSCORE_COUNT][PLAYER_NAME_LENGTH + 1];
 
@@ -444,6 +451,20 @@ private:
       highscores[2] = hs;
       strcpy(highscoreNames[2], settings.playerName);
     }
+    saveHighscoresInStorage();
+  }
+
+  /*
+   * overrides everything with 0 and "Noname"
+   */
+  void resetHighscores() {
+    highscores[2] = 0;
+    highscores[1] = 0;
+    highscores[0] = 0;
+    // names corresponding to the highscores
+    strcpy(highscoreNames[2], NO_NAME);
+    strcpy(highscoreNames[1], NO_NAME);
+    strcpy(highscoreNames[0], NO_NAME);
     saveHighscoresInStorage();
   }
 

@@ -42,6 +42,12 @@ public:
     difficulty = d;
   }
 
+  void setMatrix(byte b) {
+    for (int i = 0; i < MATRIX_HEIGHT; ++i) {
+      lc.setRow(0, i, b);
+    }
+  }
+
   int playSurvival() {
     unsigned long startTime = millis();
     clearMatrix();
@@ -118,7 +124,7 @@ public:
     return score;
   }
 
-  int playSong(int song, String name) {
+  int playSong(byte song, const char *name) {
     clearMatrix();
     int totalBadHits = 0;
     bool finished = false;
@@ -300,10 +306,9 @@ private:
  */
 
   void updateStats(float bad, float good) {
-    static const int maxLives = 30;
     float perc = min(1, bad / (bad + good + 1));
     score += difficulty * (1 - perc);
-    lives = min(maxLives, lives + sqrt((4 - difficulty)) * (2 - perc));
+    lives = min(MAX_LIVES, lives + sqrt((4 - difficulty)) * (2 - perc));
     lives = max(0, lives - difficulty * perc * 5);
   }
   
@@ -323,7 +328,7 @@ private:
   void generateNewLine(float coeff, byte* sliderLength) {
     int updateRow = getAndResetUpdateRow();
 
-    static const int threshold = 80;
+    const int threshold = 80;
     for (int i = 0; i < MATRIX_WIDTH; i += 2) {
       if (sliderLength[i / 2] != 0) {
         matrixMap[updateRow] ^= (3 << i);
@@ -520,7 +525,7 @@ private:
     }
   }
 
-  void songEndMessage(String name, bool win) {
+  void songEndMessage(const char *name, bool win) {
     lcd.clear();
     lcd.setCursor(3, 0);
     lcd.print(F("Game Over!"));

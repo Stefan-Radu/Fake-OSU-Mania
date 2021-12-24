@@ -6,7 +6,10 @@
 #include "Defines.h"
 
 const String melodyFileNames[MELODY_COUNT] = {
-  "songs/HARRYP"
+  "songs/HARRYP",
+  "songs/MERRYC",
+  "songs/PINKP",
+  "songs/STARW",
 };
 
 byte currentSongIndex = -1,

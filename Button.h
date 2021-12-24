@@ -30,10 +30,8 @@ public:
   }
 
 private:
-
-  static const int debounceDelay = 50; // ms
   
-  const int buttonPin;
+  const byte buttonPin;
   unsigned long lastDebounceTime;
   bool lastButtonReading, buttonState;
 
@@ -44,7 +42,7 @@ private:
     }
     lastButtonReading = reading;
     
-    if ((millis() - lastDebounceTime) > debounceDelay) {
+    if ((millis() - lastDebounceTime) > DEBOUNCE_DELAY) {
       if (reading != buttonState) {
         buttonState = reading;
       }

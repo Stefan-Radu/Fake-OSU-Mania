@@ -1,7 +1,7 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
-#define MELODY_COUNT 1
+#define MELODY_COUNT 4
 
 #define SLAVE_NUMBER 7
 #define SD_CARD_CS_PIN 4

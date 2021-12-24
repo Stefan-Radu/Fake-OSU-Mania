@@ -46,6 +46,8 @@ const int speakerPin = 5;
 
 #define SLAVE_NUMBER 7
 #define PLAYER_NAME_LENGTH 6
+#define DEBOUNCE_DELAY 50
+#define NO_NAME "Noname"
   
 
 /* SETTINGS CONSTANTS */
@@ -64,6 +66,10 @@ const int speakerPin = 5;
 #define MAX_DIFFICULTY_BLOCK_COUNT 3
 
 /* MENU CONSTANTS */
+#define SECTION_COUNT 5
+#define MAX_SUBSECTIONS_COUNT 7
+#define HIGHSCORE_COUNT 3
+
 #define MAIN_MENU 0
 #define PLAY_MENU 1  
 #define HIGHSCORE_MENU 2
@@ -74,8 +80,9 @@ const int speakerPin = 5;
 #define CONTRAST 2
 #define MAT_BRIGHTNESS 3
 #define DIFFICULTY 4
+#define RESET_HIGHSCORE 5
 
-#define SURVIVAL 4
+#define SURVIVAL 5
 
 #define MAX_SECTION_LINE_LENGTH 12
 
@@ -87,9 +94,6 @@ const int speakerPin = 5;
 #define MATRIX_HEIGHT 8
 #define MATRIX_WIDTH 8
 #define MAP_HEIGHT MATRIX_HEIGHT + 1
-
-/* SONGS */
-#define HARRY_POTTER 0
 
 /* GAME CONSTANTS */
 #define MAX_LIVES 30
@@ -108,8 +112,8 @@ const int speakerPin = 5;
 #define MELODY_END -1
 
 #define MELODY_INNITIAL_DELAY 2000
-#define BASE_TEMPO 110
-#define TEMPO_MULTIPLYER 15
+#define BASE_TEMPO 100
+#define TEMPO_MULTIPLYER 20
 #define WHOLE_NOTE_BAR_COUNT 32
 
 #define ANIMATION_DELAY_SMALL 10
