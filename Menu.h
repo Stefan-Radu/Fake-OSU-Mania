@@ -95,15 +95,8 @@ private:
   
   #define MAX_SECTION_LINE_LENGTH 12
 
-  const int menuLengths[5] = {5, 6, 5, 6};
+  const byte menuLengths[5] = {5, 6, 5, 5, 6};
   String menuSection[6];
-  String highScoreSection[5] = {
-    "<Highscores>",
-    "Player1: ___",
-    "Player2: ___",
-    "Player3: ___",
-    "Back",
-  };
 
   void loadMenuSection(int which) {
     if (which == 0) {
@@ -120,12 +113,16 @@ private:
       menuSection[4] = "Difficulty",
       menuSection[5] = "Back";
     } else if (which == 2) {
-      menuSection[0] = "About",
+      menuSection[0] = "<About>",
       menuSection[1] = "Title: Kinda OSU!",
       menuSection[2] = "By: Stefan R.",
       menuSection[3] = "Github: https://git.io/JDfIx",
       menuSection[4] = "Back";
     } else if (which == 3) {
+      menuSection[0] = "<Highscores>",
+      loadHighscoresInMenuSection(),
+      menuSection[4] = "Back";
+    } else if (which == 4) {
       menuSection[0] = "<Pick Game Mode>",
       menuSection[1] = "Harry Potter",
       menuSection[2] = "",
@@ -134,41 +131,6 @@ private:
       menuSection[5] = "Back";
     }
   }
-  
-//  String menuSections[5][6] = { {
-//      "<Kinda OSU!>",
-//      "Let's OSU!",
-//      "Highscore",
-//      "Settings",
-//      "About"
-//    }, {
-//      "<Settings>",
-//      "Enter name",
-//      "Contrast",
-//      "Mat Brightnes",
-//      "Difficulty",
-//      "Back"
-//    }, {
-//      "<About>",
-//      "Title: Kinda OSU!",
-//      "By: Stefan R.",
-//      "Github: https://git.io/JDfIx",
-//      "Back"
-//    }, {
-//      "<Highscores>",
-//      "Player1: ___",
-//      "Player2: ___",
-//      "Player3: ___",
-//      "Back",
-//    }, {
-//      "<Pick Game Mode>",
-//      "Harry Potter",
-//      "",
-//      "",
-//      "Survival",
-//      "Back",
-//    }
-//  };
 
   bool update() {
     bool c = updateCursor();
@@ -176,7 +138,6 @@ private:
     if (m) {
       sectionIndex = 1;
       cursorRow = 1;
-      // TODO somehow remember last index
     }
     return c || m;
   }
@@ -274,14 +235,16 @@ private:
   }
 
   void showMenuSections() {
+    loadMenuSection(currentMenu);
+    
     lcd.clear();
     int offset = 1 - cursorRow * 2; // mate
     lcd.setCursor(0, 1 - cursorRow);
-    lcd.print("  " + menuSections[currentMenu][sectionIndex + offset]);
+    lcd.print("  " + menuSection[sectionIndex + offset]);
     lcd.setCursor(0, cursorRow);
     lcd.write(byte(R_ARROW));
     lcd.print(" ");
-    lcd.print(menuSections[currentMenu][sectionIndex]);
+    lcd.print(menuSection[sectionIndex]);
 
     if (sectionIndex < menuLengths[currentMenu] - 1) {
       lcd.setCursor(DISPLAY_WIDTH - 1, 1);
@@ -424,7 +387,8 @@ private:
       return;
     }
 
-    int limit = menuSections[currentMenu][sectionIndex].length() - 14;
+    loadMenuSection(currentMenu);
+    int limit = menuSection[sectionIndex].length() - 14;
     if (scrollCount == limit && timeNow - lastScrollTime < scrollInterval * 5) {
       return;
     } else if (scrollCount == limit) {
@@ -434,10 +398,10 @@ private:
       return;
     }
    
-    if (menuSections[currentMenu][sectionIndex].length() > 14) {
+    if (menuSection[sectionIndex].length() > 14) {
       lcd.scrollDisplayLeft();
       lcd.setCursor(DISPLAY_WIDTH - 1 + scrollCount, cursorRow);
-      lcd.print(menuSections[currentMenu][sectionIndex][DISPLAY_WIDTH - 2 + scrollCount]);
+      lcd.print(menuSection[sectionIndex][DISPLAY_WIDTH - 2 + scrollCount]);
       int offset = 1 - cursorRow * 2;
       lcd.setCursor(0, 1 - cursorRow);
       String padding = "  ";
@@ -445,7 +409,7 @@ private:
         padding += " ";
       }
       lcd.setCursor(0, 1 - cursorRow);
-      lcd.print(padding + menuSections[currentMenu][sectionIndex + offset]);
+      lcd.print(padding + menuSection[sectionIndex + offset]);
     }
       
     lastScrollTime = timeNow;
@@ -462,6 +426,15 @@ private:
   int highscores[HIGHSCORE_COUNT] = {0, 0, 0};
   char highscoreNames[HIGHSCORE_COUNT][PLAYER_NAME_LENGTH + 1];
 
+  void loadHighscoresInMenuSection() {
+    // update what is shown in the highscore menu
+    for (int i = 0; i < 3; ++ i) {
+      menuSection[i + 1] = String(highscoreNames[i]);
+      menuSection[i + 1] += ": ";
+      menuSection[i + 1] += String(highscores[i]);
+    }
+  }
+  
   void updateHighscores(int hs) {
     if (hs > highscores[0]) {
       // actual highscore numbers
@@ -480,15 +453,6 @@ private:
     } else if (hs > highscores[2]) {
       highscores[2] = hs;
       strcpy(highscoreNames[2], settings.playerName);
-    }
-    
-    // update what is shown in the highscore menu
-    for (int i = 0; i < 3; ++ i) {
-      char *s = menuSections[HIGHSCORE][i + 1].c_str();
-      // copy at most <length> caracters.
-      // basically pad with spaces at the end
-      snprintf(s, MAX_SECTION_LINE_LENGTH + 1, "%s: %d           \0",
-               highscoreNames[i], highscores[i]);
     }
     saveHighscoresInStorage();
   }
