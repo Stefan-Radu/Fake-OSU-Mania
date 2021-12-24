@@ -485,7 +485,7 @@ private:
     displayIndentedMessage(0, F("Score: "), s);
   }
 
-  void displaySurvivalEndGameStats(int score, int startTime) {
+  void displaySurvivalEndGameStats(int score, unsigned long &startTime) {
     lcd.clear();
     displayIndentedMessage(0, F("Score: "), score);
     int duration = (millis() - startTime) / 1000;

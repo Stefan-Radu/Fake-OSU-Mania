@@ -164,7 +164,7 @@ private:
 
   void showStartMessage() {
     lcd.clear();
-    printIndentedMessage(0, "Wellcome ");
+    printIndentedMessage(0, "Welcome ");
     delay(500);
     lcd.print("and");
     delay(1000);
