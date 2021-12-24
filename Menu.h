@@ -23,17 +23,21 @@ public:
     
     // lcd related
     pinMode(lcdV0Pin, OUTPUT);
-    
-    lcd.createChar(BLOCK, block);
-    lcd.createChar(L_ARROW, leftArrow);
-    lcd.createChar(R_ARROW, rightArrow);
-    lcd.createChar(U_ARROW, upArrow);
-    lcd.createChar(D_ARROW, downArrow);
-    
-    lcd.begin(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+
+    /* 
+     *  lcd.clear() before begin makes all the difference
+     *  in terms of clean, 0 noise, startup
+     */
     lcd.clear();
+    lcd.begin(DISPLAY_WIDTH, DISPLAY_HEIGHT);
     lcd.noCursor();
     lcd.noBlink();
+
+    createBlock(lcd);
+    createRArrow(lcd);
+    createLArrow(lcd);
+    createUArrow(lcd);
+    createDArrow(lcd);
     
     // get settings and init    
     loadAllFromStorage();
@@ -46,8 +50,7 @@ public:
     setDifficulty();
     // TODO un comment this
     //showStartMessage();
-
-    // update logic. this should be called sepparately    
+  
     showMenuSections();
   }
 
@@ -91,37 +94,81 @@ private:
   #define DIFFICULTY 4
   
   #define MAX_SECTION_LINE_LENGTH 12
-  
-  const String title = "Kinda OSU!";
-  
-  const int menuLengths[5] = {5, 6, 5, 5};
-  String menuSections[4][6] = { {
-      "<" + title + ">",
-      "Let's OSU!",
-      "Highscore",
-      "Settings",
-      "About"
-    }, {
-      "<Settings>",
-      "Enter name",
-      "Contrast",
-      "Mat Brightnes",
-      "Difficulty",
-      "Back"
-    }, {
-      "<About>",
-      "Title: " + title,
-      "By: Stefan R.",
-      "Github: https://git.io/JDfIx",
-      "Back"
-    }, {
-      "<Highscores>",
-      "Player1: ___",
-      "Player2: ___",
-      "Player3: ___",
-      "Back",
-    }
+
+  const int menuLengths[5] = {5, 6, 5, 6};
+  String menuSection[6];
+  String highScoreSection[5] = {
+    "<Highscores>",
+    "Player1: ___",
+    "Player2: ___",
+    "Player3: ___",
+    "Back",
   };
+
+  void loadMenuSection(int which) {
+    if (which == 0) {
+      menuSection[0] = "<Kinda OSU!>",
+      menuSection[1] = "Let's OSU!",
+      menuSection[2] = "Highscore",
+      menuSection[3] = "Settings",
+      menuSection[4] = "About";
+    } else if (which == 1) {
+      menuSection[0] = "<Settings>",
+      menuSection[1] = "Enter name",
+      menuSection[2] = "Contrast",
+      menuSection[3] = "Mat Brightnes",
+      menuSection[4] = "Difficulty",
+      menuSection[5] = "Back";
+    } else if (which == 2) {
+      menuSection[0] = "About",
+      menuSection[1] = "Title: Kinda OSU!",
+      menuSection[2] = "By: Stefan R.",
+      menuSection[3] = "Github: https://git.io/JDfIx",
+      menuSection[4] = "Back";
+    } else if (which == 3) {
+      menuSection[0] = "<Pick Game Mode>",
+      menuSection[1] = "Harry Potter",
+      menuSection[2] = "",
+      menuSection[3] = "",
+      menuSection[4] = "Survival",
+      menuSection[5] = "Back";
+    }
+  }
+  
+//  String menuSections[5][6] = { {
+//      "<Kinda OSU!>",
+//      "Let's OSU!",
+//      "Highscore",
+//      "Settings",
+//      "About"
+//    }, {
+//      "<Settings>",
+//      "Enter name",
+//      "Contrast",
+//      "Mat Brightnes",
+//      "Difficulty",
+//      "Back"
+//    }, {
+//      "<About>",
+//      "Title: Kinda OSU!",
+//      "By: Stefan R.",
+//      "Github: https://git.io/JDfIx",
+//      "Back"
+//    }, {
+//      "<Highscores>",
+//      "Player1: ___",
+//      "Player2: ___",
+//      "Player3: ___",
+//      "Back",
+//    }, {
+//      "<Pick Game Mode>",
+//      "Harry Potter",
+//      "",
+//      "",
+//      "Survival",
+//      "Back",
+//    }
+//  };
 
   bool update() {
     bool c = updateCursor();

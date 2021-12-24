@@ -7,7 +7,6 @@
 #include "Joystick.h"
 #include "ButtonGroup.h"
 #include "Globals.h"
-#include "Master.h"
 
 
 class Game {
@@ -19,6 +18,7 @@ public:
           lcdShiftRegisterD4Pin, lcdShiftRegisterD5Pin,
           lcdShiftRegisterD6Pin, lcdShiftRegisterD7Pin) {
     
+    Wire.begin();
     randomSeed(analogRead(0));
 
     lc.shutdown(0, false); // turn off power saving, enables display
@@ -28,7 +28,6 @@ public:
     startAnimation();
     joystick = Joystick::getInstance();
     buttonGroup = ButtonGroup::getInstance();
-    master = Master::getInstance();
   }
 
   void updateBrightness(int value) {
@@ -114,7 +113,7 @@ public:
     int totalBadHits = 0;
     bool finished = false;
 
-    master->selectSongTransmission(song); {
+    selectSongTransmission(song); {
       currentRow = 0, lastStateChange = 0;
       score = 0, lives = MAX_LIVES;
       
@@ -132,7 +131,6 @@ public:
       const int wholeNoteDuration = 60000 / tempo * 4; // 60 s / tempo * 4 beats
       const int melodyBarDuration = wholeNoteDuration / WHOLE_NOTE_BAR_COUNT;
   
-      // TODO replace with animation
       delay(2000);
            
       while (true) {
@@ -218,7 +216,6 @@ private:
 
   LedControl lc;
   LiquidCrystal_74HC595 lcd;
-  Master *master;
   
   Joystick* joystick = nullptr;
   ButtonGroup *buttonGroup = nullptr;
@@ -250,6 +247,12 @@ private:
  * ================= Melody Transfer =================
  * 
  */
+
+  void selectSongTransmission(int song) {
+    Wire.beginTransmission(SLAVE_NUMBER);
+    Wire.write(song);
+    Wire.endTransmission();
+  }
 
   bool refillMelodyBuffer(byte &melodyBufferIndex) {
     /*
@@ -413,31 +416,31 @@ private:
  
   void updateInGameDisplayedStats(int s, int l) {
     lcd.clear();
-    displayIndentedMessage(1, "Lives: ", l);
-    displayIndentedMessage(0, "Score: ", s);
+    displayIndentedMessage(1, F("Lives: "), l);
+    displayIndentedMessage(0, F("Score: "), s);
   }
 
   void displaySurvivalEndGameStats(int score, int startTime) {
     lcd.clear();
-    displayIndentedMessage(0, "Score: ", score);
+    displayIndentedMessage(0, F("Score: "), score);
     int duration = (millis() - startTime) / 1000;
-    displayIndentedMessage(1, "Duration: ", duration, "s");
+    displayIndentedMessage(1, F("Duration: "), duration, "s");
     joystick->waitForPress();
   }
 
   void displaySongEndGameStats(int score, int badHits) {
     lcd.clear();
-    displayIndentedMessage(0, "Score: ", score);
-    displayIndentedMessage(1, "Bad hits: ", badHits);
+    displayIndentedMessage(0, F("Score: "), score);
+    displayIndentedMessage(1, F("Bad hits: "), badHits);
     joystick->waitForPress();
   }
 
   void endGameAnimation(int d, int *sliderLength) {
     lcd.clear();
     lcd.setCursor(3, 0);
-    lcd.print("Game Over!");
+    lcd.print(F("Game Over!"));
     lcd.setCursor(1, 1);
-    lcd.print("You did GREAT!");
+    lcd.print(F("You did GREAT!"));
     
     for (int i = 0; i < MAP_HEIGHT * 20; ++i) {
       currentRow += 1;
@@ -510,14 +513,14 @@ private:
   void songEndMessage(String name, bool win) {
     lcd.clear();
     lcd.setCursor(3, 0);
-    lcd.print("Game Over!");
+    lcd.print(F("Game Over!"));
     lcd.setCursor(1, 1);
     if (win) {
-      lcd.print("Congratz ");
+      lcd.print(F("Congratz "));
       lcd.print(name);
     }
     else {
-      lcd.print("Quite bad ");
+      lcd.print(F("Quite bad "));
       lcd.print(name);
     }
     joystick->waitForPress();
