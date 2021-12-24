@@ -71,8 +71,6 @@ private:
 
   Game *game;
   Joystick *joystick;
-
-  #define PLAYER_NAME_LENGTH 6
   
   // settings are saved in and loaded from eeprom
   struct {
@@ -83,10 +81,6 @@ private:
   } settings;
       
   LiquidCrystal_74HC595 lcd;
-  
-  #define HIGHSCORE 3
-  #define SETTINGS 1
-  #define ABOUT 2
 
   #define ENTER_NAME 1
   #define CONTRAST 2
@@ -123,7 +117,7 @@ private:
       loadHighscoresInMenuSection(),
       menuSection[4] = "Back";
     } else if (which == 4) {
-      menuSection[0] = "<Pick Game Mode>",
+      menuSection[0] = "<Pick Mode>",
       menuSection[1] = "Harry Potter",
       menuSection[2] = "",
       menuSection[3] = "",
@@ -196,14 +190,15 @@ private:
         if (sectionIndex == 1) {
           //int score = game->playPOC();
           //updateHighscores(score);
-          game->playSong(0, String(settings.playerName));
-          currentMenu = MAIN_MENU;
+//          game->playSong(0, String(settings.playerName));
+//          currentMenu = MAIN_MENU;
+          currentMenu = PLAY_MENU;
         } else if (sectionIndex == 2) {
-          currentMenu = HIGHSCORE;
+          currentMenu = HIGHSCORE_MENU;
         } else if (sectionIndex == 3) {
-          currentMenu = SETTINGS;
+          currentMenu = SETTINGS_MENU;
         } else if (sectionIndex == 4) {
-          currentMenu = ABOUT;
+          currentMenu = ABOUT_MENU;
         }
         break;
       case SETTINGS:
@@ -225,11 +220,15 @@ private:
           currentMenu = MAIN_MENU;
         }
         break;
-      case HIGHSCORE:
-        if (sectionIndex == 4) {
+      case HIGHSCORE_MENU:
+        if (sectionIndex == menuLengths[HIGHSCORE_MENU] - 1) {
           currentMenu = MAIN_MENU;
         }
         break;
+      case PLAY_MENU:
+        if (sectionIndex == menuLengths[PLAY_MENU] - 1) {
+          currentMenu = MAIN_MENU;
+        }
     }
     return true;
   }

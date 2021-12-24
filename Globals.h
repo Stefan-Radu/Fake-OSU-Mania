@@ -45,6 +45,8 @@ const int speakerPin = 5;
  */
 
 #define SLAVE_NUMBER 7
+#define PLAYER_NAME_LENGTH 6
+  
 
 /* SETTINGS CONSTANTS */
 #define MIN_SLIDER_BLOCK_COUNT 1
@@ -62,7 +64,11 @@ const int speakerPin = 5;
 #define MAX_DIFFICULTY_BLOCK_COUNT 3
 
 /* MENU CONSTANTS */
-#define MAIN_MENU 0
+#define MAIN_MENU 0  
+#define HIGHSCORE_MENU 3
+#define SETTINGS_MENU 1
+#define ABOUT_MENU 2
+#define PLAY_MENU 4
 
 /* LCD */
 #define DISPLAY_WIDTH 16
