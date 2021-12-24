@@ -592,12 +592,13 @@ private:
     lcd.clear();
     lcd.setCursor(3, 0);
     lcd.print(F("Game Over!"));
-    lcd.setCursor(1, 1);
     if (win) {
+      lcd.setCursor(1, 1);
       lcd.print(F("Congratz "));
       lcd.print(name);
     }
     else {
+      lcd.setCursor(0, 1);
       lcd.print(F("Quite bad "));
       lcd.print(name);
     }

@@ -148,10 +148,16 @@ private:
     }
 
     sectionIndex += dir;
+    // low sound for bad move attempts
+    // high sound for correct moves
     if (sectionIndex == menuLengths[currentMenu]) {
       sectionIndex -= 1;
+      tone(speakerPin, NOTE_G4, CLICK_TONE_DURATION);
     } else if (sectionIndex == 0) {
       sectionIndex = 1;
+      tone(speakerPin, NOTE_G4, CLICK_TONE_DURATION);
+    } else {
+      tone(speakerPin, NOTE_D5, CLICK_TONE_DURATION);
     }
     return true;
   }
@@ -239,13 +245,9 @@ private:
         break;
     }
 
-    if (currentMenu == MAIN_MENU) {
-      tone(speakerPin, NOTE_D5, CLICK_TONE_DURATION);
-      tone(speakerPin, NOTE_G4, CLICK_TONE_DURATION);
-    } else {
-      tone(speakerPin, NOTE_G4, CLICK_TONE_DURATION);
-      tone(speakerPin, NOTE_D5, CLICK_TONE_DURATION);
-    }
+    tone(speakerPin, NOTE_G4, CLICK_TONE_DURATION);
+    delay(CLICK_TONE_DURATION);
+    tone(speakerPin, NOTE_D5, CLICK_TONE_DURATION);
     
     return true;
   }
