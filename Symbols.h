@@ -46,14 +46,14 @@ public:
 
   void settings() {
     byte symbol[MATRIX_HEIGHT] {
-      B00100100,
-      B01000010,
-      B01000010,
-      B00111100,
-      B00011000,
-      B00011000,
-      B00011000,
-      B00011000,
+      B00000000,
+      B00010100,
+      B01011000,
+      B00111110,
+      B01111100,
+      B00011010,
+      B00101000,
+      B00000000
     };
 
     displaySymbol(symbol);
@@ -76,14 +76,14 @@ public:
 
   void highscore() {
     byte symbol[MATRIX_HEIGHT] {
-      B01100110,
-      B01100110,
-      B01100110,
+      B01111110,
+      B01111110,
       B01111110,
       B01111110,
       B00111100,
-      B00111100,
-      B01111110,
+      B00011000,
+      B00011000,
+      B01111110
     };
  
     displaySymbol(symbol);
