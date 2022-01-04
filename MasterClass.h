@@ -1,20 +1,16 @@
 #ifndef MASTER_CLASS_H
 #define MASTER_CLASS_H
 
-#include <LiquidCrystal_74HC595.h>
+#include "Globals.h"
 #include "Joystick.h"
 #include "Characters.h"
 #include "Game.h"
-#include "Globals.h"
 #include <EEPROM.h>
 
 class MasterClass {
 public:
 
-  MasterClass(): lcd(lcdDSPin, lcdClockPin, lcdLatchPin,
-          lcdShiftRegisterRSPin, lcdShiftRegisterEPin,
-          lcdShiftRegisterD4Pin, lcdShiftRegisterD5Pin,
-          lcdShiftRegisterD6Pin, lcdShiftRegisterD7Pin) {
+  MasterClass() {
     joystick = Joystick::getInstance();
     sectionIndex = 1;
     currentMenu = MAIN_MENU;
@@ -49,6 +45,7 @@ public:
     setDifficulty();
     
     showStartMessage();
+    switchMatrixSymbol();
     showMenuSections();
   }
 
@@ -77,8 +74,6 @@ private:
     int difficulty; // 0 - 12
     char playerName[PLAYER_NAME_LENGTH + 1];
   } settings;
-      
-  LiquidCrystal_74HC595 lcd;
 
   const byte menuLengths[SECTION_COUNT] = {5, 7, 5, 7, 5};
   String menuSection[MAX_SUBSECTIONS_COUNT];
@@ -164,7 +159,7 @@ private:
 
   void showStartMessage() {
     lcd.clear();
-    printIndentedMessage(0, "Welcome ");
+    printIndentedMessage(0, "Welcome! ");
     delay(500);
     lcd.print("and");
     delay(1000);
@@ -185,6 +180,27 @@ private:
     lcd.print(message);
   }
 
+  void switchMatrixSymbol() {
+    Symbols symbols;
+    switch(currentMenu) {
+      case MAIN_MENU:
+        symbols.osu();
+        break;
+      case PLAY_MENU:
+        symbols.play();
+        break;
+      case HIGHSCORE_MENU:
+        symbols.highscore();
+        break;
+      case SETTINGS_MENU:
+        symbols.settings();      
+        break;
+      case ABOUT_MENU:
+        symbols.about();
+        break;
+    }
+  }
+
   /*
    * defines what happens for every section and
    * submenu when the joystick button is pressed
@@ -199,6 +215,25 @@ private:
     switch (currentMenu) {
       case MAIN_MENU:
         currentMenu = sectionIndex;
+        break;
+      case PLAY_MENU:
+        if (sectionIndex == menuLengths[PLAY_MENU] - 1) {
+          currentMenu = MAIN_MENU;
+          break;
+        }
+        int score;
+        if (sectionIndex == SURVIVAL) {
+          score = game->playSurvival();
+        } else {
+          score = game->playSong(sectionIndex - 1, settings.playerName);
+        }
+        updateHighscores(score);
+        currentMenu = PLAY_MENU;
+        break;
+      case HIGHSCORE_MENU:
+        if (sectionIndex == menuLengths[HIGHSCORE_MENU] - 1) {
+          currentMenu = MAIN_MENU;
+        }
         break;
       case SETTINGS_MENU:
         if (sectionIndex == ENTER_NAME) {
@@ -224,26 +259,10 @@ private:
           currentMenu = MAIN_MENU;
         }
         break;
-      case HIGHSCORE_MENU:
-        if (sectionIndex == menuLengths[HIGHSCORE_MENU] - 1) {
-          currentMenu = MAIN_MENU;
-        }
-        break;
-      case PLAY_MENU:
-        if (sectionIndex == menuLengths[PLAY_MENU] - 1) {
-          currentMenu = MAIN_MENU;
-          break;
-        }
-        int score;
-        if (sectionIndex == SURVIVAL) {
-          score = game->playSurvival();
-        } else {
-          score = game->playSong(sectionIndex - 1, settings.playerName);
-        }
-        updateHighscores(score);
-        currentMenu = PLAY_MENU;
-        break;
     }
+    
+    // switch matrix symbol corresponding with current menu
+    switchMatrixSymbol();
 
     tone(speakerPin, NOTE_G4, CLICK_TONE_DURATION);
     delay(CLICK_TONE_DURATION);

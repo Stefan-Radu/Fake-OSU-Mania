@@ -1,6 +1,9 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
+#include <LedControl.h>
+#include <LiquidCrystal_74HC595.h>
+
 /*
  * PINS
  * ========================================
@@ -124,5 +127,17 @@ const int speakerPin = 5;
 
 #define ANIMATION_DELAY_SMALL 10
 #define ANIMATION_DELAY 50
+#define SHOW_SYMBOL_ANIMATION_DELAY 15
+
+/*
+ * Hardware controll devices
+ * ==========================================
+ */
+
+LiquidCrystal_74HC595 lcd(lcdDSPin, lcdClockPin, lcdLatchPin,
+                      lcdShiftRegisterRSPin, lcdShiftRegisterEPin,
+                      lcdShiftRegisterD4Pin, lcdShiftRegisterD5Pin,
+                      lcdShiftRegisterD6Pin, lcdShiftRegisterD7Pin);
+LedControl lc(matrixDinPin, matrixClockPin, matrixLoadPin, 1);
 
 #endif

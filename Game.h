@@ -1,23 +1,16 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include <LedControl.h>
-#include <LiquidCrystal_74HC595.h>
 #include <Wire.h>
 #include "Joystick.h"
 #include "ButtonGroup.h"
 #include "Globals.h"
+#include "Symbols.h"
 
 
 class Game {
 public:
-  Game(int brightness = 2): 
-       lc(matrixDinPin, matrixClockPin, matrixLoadPin, 1),
-       lcd(lcdDSPin, lcdClockPin, lcdLatchPin,
-          lcdShiftRegisterRSPin, lcdShiftRegisterEPin,
-          lcdShiftRegisterD4Pin, lcdShiftRegisterD5Pin,
-          lcdShiftRegisterD6Pin, lcdShiftRegisterD7Pin) {
-    
+  Game(int brightness = 2) {
     Wire.begin();
     randomSeed(analogRead(0));
 
@@ -249,9 +242,6 @@ public:
   }
   
 private:
-
-  LedControl lc;
-  LiquidCrystal_74HC595 lcd;
   
   Joystick* joystick = nullptr;
   ButtonGroup *buttonGroup = nullptr;
@@ -564,28 +554,8 @@ private:
       delay(ANIMATION_DELAY);
     }
 
-    byte symbol[MATRIX_HEIGHT] {
-      B00000000,
-      B01100110,
-      B01100110,
-      B01100110,
-      B00000000,
-      B01000010,
-      B00111100,
-      B00000000
-    };
-
-    if (!won) {
-      // make it sad
-      byte aux = symbol[5];
-      symbol[5] = symbol[6];
-      symbol[6] = aux;
-    }
-  
-    for (int i = 0; i < MATRIX_HEIGHT; ++i) {
-      lc.setRow(0, i, symbol[i]);
-      delay(ANIMATION_DELAY);
-    }
+    Symbols symbols;
+    symbols.smiley(won);
   }
 
   void songEndMessage(const char *name, bool win) {
